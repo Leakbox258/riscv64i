@@ -56,9 +56,10 @@ module EXU #(
   /// Memory Read || Write
   parameter RAM_NONE = 0, RAM_READ = 1, RAM_WRITE = 2;
 
-  reg [  RAM_SIZE-1:0] mem_addr;
+  reg [RAM_SIZE-1:0] mem_addr;
   reg [DATA_WIDTH-1:0] mem_writein;
   reg [DATA_WIDTH-1:0] mem_readout;
+  wire mem_access_error;
   RAM #(DATA_WIDTH, RAM_SIZE) RvRam (
       .clk(clk),
       .addr_i(mem_addr),
@@ -67,8 +68,10 @@ module EXU #(
       .memwid_i(memwid_i),
 
       .data_o(mem_readout),
-      .illegal_access_o(execute_error_o[MEM_ACCESS_ERROR])
+      .illegal_access_o(mem_access_error)
   );
+
+  assign execute_error_o[MEM_ACCESS_ERROR] = mem_access_error && (memread_i || memwrite_i);
 
   /// ALU 
   reg [DATA_WIDTH -1:0] alu_A, alu_B;

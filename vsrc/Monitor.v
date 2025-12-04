@@ -20,41 +20,7 @@ module Monitor (
             EBREAK = 5;
 
   parameter Anormaly = 3;
-  wire [5:0] interrupt;
-
-  /* Seg7 display */
-  reg [7:0] segs_reg[8];
-  reg [7:0] segs_combine[8];
-
-  parameter   
-            SEGNONE = 8'b00000000,
-            SEGERROR = 8'b01001001,
-            SEG0 = 8'b01111110,
-            SEG1 = 8'b00001100,
-            SEG2 = 8'b01011011,
-            SEG3 = 8'b01001111,
-            SEG4 = 8'b01100110,
-            SEG5 = 8'b01101101,
-            SEG6 = 8'b01111101,
-            SEG7 = 8'b00001110,
-            SEG8 = 8'b01111111,
-            SEG9 = 8'b01101111,
-            SEGA = 8'b01110111,
-            SEGb = 8'b01111100,
-            SEGC = 8'b00111001,
-            SEGd = 8'b01011110,
-            SEGE = 8'b01111001,
-            SEGF = 8'b01110001;
-
-  /// Board display
-  assign seg0 = segs_reg[0];
-  assign seg1 = segs_reg[1];
-  assign seg2 = segs_reg[2];
-  assign seg3 = segs_reg[3];
-  assign seg4 = segs_reg[4];
-  assign seg5 = segs_reg[5];
-  assign seg6 = segs_reg[6];
-  assign seg7 = segs_reg[7];
+  wire [ 5:0] interrupt;
 
   wire [63:0] pc;
   wire [63:0] new_pc;
@@ -143,7 +109,6 @@ module Monitor (
   parameter NORMAL = 0, HALT = 1, ERROR = 2;
 
   reg [2:0] state, nstate;
-  integer i;
 
   always @(*) begin
     if (interrupt[Anormaly:0] != 0) begin
@@ -167,6 +132,40 @@ module Monitor (
     end
   end
 
+  /* Seg7 display */
+  reg [7:0] segs_reg[8];
+  reg [7:0] segs_combine[8];
+
+  parameter   
+            SEGNONE = ~(8'b00000000),
+            SEGERROR = ~(8'b10010010),
+            SEG0 = ~(8'b11111100),
+            SEG1 = ~(8'b01100000),
+            SEG2 = ~(8'b11011010),
+            SEG3 = ~(8'b11110010),
+            SEG4 = ~(8'b01100110),
+            SEG5 = ~(8'b10110110),
+            SEG6 = ~(8'b10111110),
+            SEG7 = ~(8'b11100000),
+            SEG8 = ~(8'b11111110),
+			SEG9 = ~(8'b11110110),
+			SEGA = ~(8'b11101110),
+			SEGb = ~(8'b00111110),
+			SEGC = ~(8'b10011100),
+			SEGd = ~(8'b01111010),
+			SEGE = ~(8'b10011110),
+			SEGF = ~(8'b10001110);
+
+  /// Board display
+  assign seg0 = segs_reg[0];
+  assign seg1 = segs_reg[1];
+  assign seg2 = segs_reg[2];
+  assign seg3 = segs_reg[3];
+  assign seg4 = segs_reg[4];
+  assign seg5 = segs_reg[5];
+  assign seg6 = segs_reg[6];
+  assign seg7 = segs_reg[7];
+
   function logic [7:0] get_hex_seg(input logic [3:0] val);
     case (val)
       4'h0: return SEG0;
@@ -185,7 +184,6 @@ module Monitor (
       4'hd: return SEGd;
       4'he: return SEGE;
       4'hf: return SEGF;
-      default: return SEGNONE;
     endcase
   endfunction
 
@@ -195,7 +193,6 @@ module Monitor (
     if (nstate == NORMAL | nstate == HALT) begin
       /// Display PC
       for (int k = 0; k < 8; k++) begin
-        // FIXED: Correct Part Select: [k*4 +: 4]
         segs_combine[k] = get_hex_seg(pc[k*4+:4]);
       end
     end else begin
@@ -205,7 +202,7 @@ module Monitor (
       segs_combine[MemAccessError] = interrupt[MemAccessError] ? SEGERROR : SEGNONE;
       segs_combine[UnknownBrtyError] = interrupt[UnknownBrtyError] ? SEGERROR : SEGNONE;
 
-      for (i = Anormaly + 1; i < 8; i = i + 1) begin
+      for (int i = Anormaly + 1; i < 8; i = i + 1) begin
         segs_combine[i] = SEGNONE;
       end
     end

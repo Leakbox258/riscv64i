@@ -2,3 +2,9 @@
 build
 obj_dir
 .vscode
+.clang-format
+3rd-party/abstract-machine/am/build
+3rd-party/abstract-machine/klib/build
+3rd-party/am-kernels/tests/cpu-tests/build
+3rd-party/am-kernels/tests/am-tests/build
+3rd-party/am-kernels/tests/alu-tests/build

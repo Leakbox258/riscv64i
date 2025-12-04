@@ -1,0 +1,16 @@
+#include <am.h>
+#include <klib-macros.h>
+#include <stdatomic.h>
+
+bool mpe_init(void (*entry)()) {
+  entry();
+  panic("MPE entry returns");
+}
+
+int cpu_count() { return 1; }
+
+int cpu_current() { return 0; }
+
+int atomic_xchg(int *addr, int newval) {
+  return __atomic_exchange_n(addr, newval, __ATOMIC_SEQ_CST);
+}
