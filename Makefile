@@ -8,10 +8,11 @@ VERILATOR_CFLAGS += -MMD --build -cc \
 					--x-initial fast --noassert
 
 BUILD_DIR = ./build
-APP_BUILD_DIR = ./3rd-party/am-kernels
-AM_DIR = ./3rd-party/abstract-machine
+AM_KERNELS_CPU_TESTS_DIR = ./3rd-party/am-kernels/tests/cpu-tests
+ABSTRACT_MACHINE_DIR = ./3rd-party/abstract-machine
 OBJ_DIR = $(BUILD_DIR)/obj_dir
 BIN = $(BUILD_DIR)/$(TOPNAME)
+ALL ?=
 
 default: $(BIN)
 
@@ -42,15 +43,25 @@ $(BIN): $(VSRCS) $(CSRCS) $(NVBOARD_ARCHIVE)
 		$(addprefix -LDFLAGS , $(LDFLAGS)) \
 		--Mdir $(OBJ_DIR) --exe -o $(abspath $(BIN))
 
+# generate headers for C++ linting
 headers: $(VSRCS)
 	@rm -rf $(OBJ_DIR)
 	$(VERILATOR) $(VERILATOR_CFLAGS) \
 		--top-module $(TOPNAME) $^ \
 		--Mdir $(OBJ_DIR)
 
+# build & run single app
+debug: 
+	@make -s -f $(AM_KERNELS_CPU_TESTS_DIR)/Makefile \
+		ARCH=riscv64-npc \
+		ALL=$(AM_KERNELS_CPU_TESTS_DIR)/tests/$(ALL) \
+		AM_KERNELS_CPU_TESTS_DIR=$(AM_KERNELS_CPU_TESTS_DIR) \
+		ABSTRACT_MACHINE_DIR=$(ABSTRACT_MACHINE_DIR) \
+		debug
+
 all: default
 
-run: $(BIN)
+run: $(BIN) debug
 	@$^
 
 clean:

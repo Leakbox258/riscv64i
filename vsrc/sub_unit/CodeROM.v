@@ -17,7 +17,11 @@ module CodeROM #(
 
   integer fd, count;
   initial begin
-    fd = $fopen("app.bin", "rb");
+    fd = $fopen("./build/app.bin", "rb");
+
+    if (fd == 0) begin
+      fd = $fopen("app.bin", "rb");
+    end
 
     if (fd == 0) begin
       $display("ERROR: Cannot find elf file.");

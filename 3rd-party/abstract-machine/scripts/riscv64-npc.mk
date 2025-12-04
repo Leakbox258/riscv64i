@@ -1,5 +1,5 @@
-include $(AM_HOME)/scripts/isa/riscv.mk
-include $(AM_HOME)/scripts/platform/npc.mk
+include $(ABSTRACT_MACHINE_DIR)/scripts/isa/riscv.mk
+include $(ABSTRACT_MACHINE_DIR)/scripts/platform/npc.mk
 COMMON_CFLAGS += -march=rv64gc -mabi=lp64d  # overwrite
 LDFLAGS       += -melf64lriscv                    # overwrite
 

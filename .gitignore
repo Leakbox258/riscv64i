@@ -8,3 +8,5 @@ obj_dir
 3rd-party/am-kernels/tests/cpu-tests/build
 3rd-party/am-kernels/tests/am-tests/build
 3rd-party/am-kernels/tests/alu-tests/build
+.result
+build

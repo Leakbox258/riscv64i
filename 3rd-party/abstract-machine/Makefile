@@ -19,13 +19,13 @@ ifeq ($(findstring $(MAKECMDGOALS),clean|clean-all|html),)
 ### Print build info message
 $(info # Building $(NAME)-$(MAKECMDGOALS) [$(ARCH)])
 
-### Check: environment variable `$AM_HOME` looks sane
-ifeq ($(wildcard $(AM_HOME)/am/include/am.h),)
-  $(error $$AM_HOME must be an AbstractMachine repo)
+### Check: environment variable `$ABSTRACT_MACHINE_DIR` looks sane
+ifeq ($(wildcard $(ABSTRACT_MACHINE_DIR)/am/include/am.h),)
+  $(error $$ABSTRACT_MACHINE_DIR must be an AbstractMachine repo)
 endif
 
 ### Check: environment variable `$ARCH` must be in the supported list
-ARCHS = $(basename $(notdir $(shell ls $(AM_HOME)/scripts/*.mk)))
+ARCHS = $(basename $(notdir $(shell ls $(ABSTRACT_MACHINE_DIR)/scripts/*.mk)))
 ifeq ($(filter $(ARCHS), $(ARCH)), )
   $(error Expected $$ARCH in {$(ARCHS)}, Got "$(ARCH)")
 endif
@@ -73,7 +73,7 @@ OBJCOPY   = $(CROSS_COMPILE)objcopy
 READELF   = $(CROSS_COMPILE)readelf
 
 ### Compilation flags
-INC_PATH += $(WORK_DIR)/include $(addsuffix /include/, $(addprefix $(AM_HOME)/, $(LIBS)))
+INC_PATH += $(WORK_DIR)/include $(addsuffix /include/, $(addprefix $(ABSTRACT_MACHINE_DIR)/, $(LIBS)))
 INCFLAGS += $(addprefix -I, $(INC_PATH))
 
 ARCH_H := arch/$(ARCH).h
@@ -91,7 +91,7 @@ LDFLAGS  += -z noexecstack $(addprefix -T, $(LDSCRIPTS))
 ## 4. Arch-Specific Configurations
 
 ### Paste in arch-specific configurations (e.g., from `scripts/x86_64-qemu.mk`)
--include $(AM_HOME)/scripts/$(ARCH).mk
+-include $(ABSTRACT_MACHINE_DIR)/scripts/$(ARCH).mk
 
 ## 5. Compilation Rules
 
@@ -123,9 +123,9 @@ $(ARCHIVE): $(OBJS)
 else
 # $(1): library name
 define LIB_TEMPLATE =
-$$(AM_HOME)/$(1)/build/$(1)-$$(ARCH).a: force
-	@$$(MAKE) -s -C $$(AM_HOME)/$(1) archive
-LINKAGE += $$(AM_HOME)/$(1)/build/$(1)-$$(ARCH).a
+$$(ABSTRACT_MACHINE_DIR)/$(1)/build/$(1)-$$(ARCH).a: force
+	@$$(MAKE) -s -C $$(ABSTRACT_MACHINE_DIR)/$(1) archive
+LINKAGE += $$(ABSTRACT_MACHINE_DIR)/$(1)/build/$(1)-$$(ARCH).a
 endef
 
 ### Rule (recursive make): build a dependent library (am, klib, ...)

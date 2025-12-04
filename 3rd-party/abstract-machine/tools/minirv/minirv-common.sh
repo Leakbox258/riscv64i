@@ -6,6 +6,7 @@ cc=$1
 flags=${*: 2:$#-4}
 
 dst_S=${dst%.o}.S
+# shellcheck disable=SC1010
 if [[ "$src" == *.S ]] then
   cp $src $dst_S
 else
