@@ -1,8 +1,8 @@
 module IMMGen #(
-    DATA_LEN = 64
+    DATA_WIDTH = 64
 ) (
     input [31:0] inst_i,
-    output reg [DATA_LEN-1:0] imme_o
+    output reg [DATA_WIDTH-1:0] imme_o
 );
 
   /* Instruction Type */
@@ -25,41 +25,45 @@ module IMMGen #(
   always @(*) begin
     case (opcode)
       Ity: begin
-        imme_o = {{(DATA_LEN - 12) {1'b0}}, inst_i[31:20]};
+        imme_o = {{(DATA_WIDTH - 12) {1'b0}}, inst_i[31:20]};
       end
       Load: begin
-        if (inst_i[31]) imme_o = {{(DATA_LEN - 12) {1'b1}}, inst_i[31:20]};
-        else imme_o = {{(DATA_LEN - 12) {1'b0}}, inst_i[31:20]};
+        if (inst_i[31]) imme_o = {{(DATA_WIDTH - 12) {1'b1}}, inst_i[31:20]};
+        else imme_o = {{(DATA_WIDTH - 12) {1'b0}}, inst_i[31:20]};
       end
       Store: begin
-        if (inst_i[31]) imme_o = {{(DATA_LEN - 12) {1'b1}}, inst_i[31:25], inst_i[11:7]};
-        else imme_o = {{(DATA_LEN - 12) {1'b0}}, inst_i[31:25], inst_i[11:7]};
+        if (inst_i[31]) imme_o = {{(DATA_WIDTH - 12) {1'b1}}, inst_i[31:25], inst_i[11:7]};
+        else imme_o = {{(DATA_WIDTH - 12) {1'b0}}, inst_i[31:25], inst_i[11:7]};
       end
       Branch: begin
         if (inst_i[31])
-          imme_o = {{(DATA_LEN - 12) {1'b1}}, inst_i[31], inst_i[11], inst_i[30:25], inst_i[11:8]};
+          imme_o = {
+            {(DATA_WIDTH - 12) {1'b1}}, inst_i[31], inst_i[11], inst_i[30:25], inst_i[11:8]
+          };
         else
-          imme_o = {{(DATA_LEN - 12) {1'b0}}, inst_i[31], inst_i[11], inst_i[30:25], inst_i[11:8]};
+          imme_o = {
+            {(DATA_WIDTH - 12) {1'b0}}, inst_i[31], inst_i[11], inst_i[30:25], inst_i[11:8]
+          };
       end
       Jalr: begin
-        if (inst_i[31]) imme_o = {{(DATA_LEN - 12) {1'b1}}, inst_i[31:20]};
-        else imme_o = {{(DATA_LEN - 12) {1'b0}}, inst_i[31:20]};
+        if (inst_i[31]) imme_o = {{(DATA_WIDTH - 12) {1'b1}}, inst_i[31:20]};
+        else imme_o = {{(DATA_WIDTH - 12) {1'b0}}, inst_i[31:20]};
       end
       Jal: begin
         if (inst_i[31])
           imme_o = {
-            {(DATA_LEN - 21) {1'b1}}, inst_i[31], inst_i[19:12], inst_i[20], inst_i[30:21], 1'b0
+            {(DATA_WIDTH - 21) {1'b1}}, inst_i[31], inst_i[19:12], inst_i[20], inst_i[30:21], 1'b0
           };
         else
           imme_o = {
-            {(DATA_LEN - 21) {1'b0}}, inst_i[31], inst_i[19:12], inst_i[20], inst_i[30:21], 1'b0
+            {(DATA_WIDTH - 21) {1'b0}}, inst_i[31], inst_i[19:12], inst_i[20], inst_i[30:21], 1'b0
           };
       end
       Auipc: begin
-        imme_o = {{(DATA_LEN - 32) {1'b0}}, inst_i[31:12], 12'b0};
+        imme_o = {{(DATA_WIDTH - 32) {1'b0}}, inst_i[31:12], 12'b0};
       end
       Lui: begin
-        imme_o = {{(DATA_LEN - 32) {1'b0}}, inst_i[31:12], 12'b0};
+        imme_o = {{(DATA_WIDTH - 32) {1'b0}}, inst_i[31:12], 12'b0};
       end
       default: imme_o = 0;
     endcase

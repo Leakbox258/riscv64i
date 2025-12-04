@@ -1,6 +1,6 @@
 module IDU #(
-    DATA_LEN = 64,
-    RF_SIZE  = 5
+    DATA_WIDTH = 64,
+    RF_SIZE = 5
 ) (
     input [31:0] inst_i,
 
@@ -10,15 +10,13 @@ module IDU #(
     output reg rs2_enable_o,
     output reg memread_o,
     output reg memwrite_o,
-    output reg [1:0] writeback_to_o,
     output reg [3:0] alu_op_o,
     output reg alu_2nd_src_o,
     output reg branch_o,
     output reg jal_o,
     output reg jalr_o,
     output reg auipc_o,
-    output reg lui_o,
-    output reg inst_illegal_o,
+    // output reg lui_o,
 
     /* resources */
     output [RF_SIZE-1:0] rd_o,
@@ -27,7 +25,10 @@ module IDU #(
     output [2:0] memwid_o,
     output [2:0] brty_o,
 
-    output [DATA_LEN-1:0] imme_o
+    output [DATA_WIDTH-1:0] imme_o,
+
+    output reg decode_error_o,
+    output reg [1:0] env_interrupt_o  // ebreak, ecall 
 );
 
   /* Instruction Type */
@@ -40,13 +41,9 @@ module IDU #(
 				Jal = 7'h6f, 
 				Auipc = 7'h17, 
 				Lui = 7'h37, 
-				Fence = 7'h0f,
-				System = 7'h73,
-				R64ty = 7'h3b,
-				I64ty = 7'h1b; // 13
-
-  /* Write Back to Target from Where */
-  parameter WB_ALU = 0, WB_MEM = 1, WB_Next_PC = 2, WB_None = 3;
+        Env = 7'h73,
+        R64ty = 7'h3b,
+				I64ty = 7'h1b;
 
   /* ALU opcode */
   parameter 	
@@ -58,16 +55,21 @@ module IDU #(
 			ALU_ADDW = 11, ALU_SUBW = 12,
 			ALU_SLLW = 13, ALU_SRLW = 14, ALU_SRAW = 15;
 
+  /* Enum Branch type */
+  parameter B_EQ = 3'b000, B_NE = 3'b001, B_LT = 3'b100, B_GE = 3'b101, B_LTU = 3'b110, B_GEU = 3'b111;
+
   /// extract the elems from encode or set default
-  wire [6:0] opcode;
-  wire [2:0] funct3;
-  wire [5:0] funct6;
-  wire [6:0] funct7;
+  wire [ 6:0] opcode;
+  wire [ 2:0] funct3;
+  wire [ 5:0] funct6;
+  wire [ 6:0] funct7;
+  wire [11:0] funct12;
 
   assign opcode = inst_i[6:0];
   assign funct3 = inst_i[14:12];
   assign funct6 = inst_i[31:26];
   assign funct7 = inst_i[31:25];
+  assign funct12 = inst_i[31:20];
 
   assign rd_o = inst_i[11:7];
   assign rs1_o = inst_i[19:15];
@@ -91,46 +93,41 @@ module IDU #(
 
     memread_o = 0;
     memwrite_o = 0;
-    writeback_to_o = WB_None;
     branch_o = 0;
     jal_o = 0;
     jalr_o = 0;
     auipc_o = 0;
-    lui_o = 0;
+    // lui_o = 0;
 
-    inst_illegal_o = 0;
+    decode_error_o = 0;
+    env_interrupt_o = 2'b00;
 
     case (opcode)
       Rty: begin
-        rd_enable_o = 1;
+        rd_enable_o  = 1;
         rs1_enable_o = 1;
         rs2_enable_o = 1;
-        writeback_to_o = WB_ALU;
       end
       Ity: begin
-        rd_enable_o = 1;
-        rs1_enable_o = 1;
+        rd_enable_o   = 1;
+        rs1_enable_o  = 1;
         alu_2nd_src_o = 1;
-        writeback_to_o = WB_ALU;
       end
       R64ty: begin
-        rd_enable_o = 1;
+        rd_enable_o  = 1;
         rs1_enable_o = 1;
         rs2_enable_o = 1;
-        writeback_to_o = WB_ALU;
       end
       I64ty: begin
-        rd_enable_o = 1;
-        rs1_enable_o = 1;
+        rd_enable_o   = 1;
+        rs1_enable_o  = 1;
         alu_2nd_src_o = 1;
-        writeback_to_o = WB_ALU;
       end
       Load: begin
         rd_enable_o = 1;
         rs1_enable_o = 1;
         alu_2nd_src_o = 1;  // calculate address
         memread_o = 1;
-        writeback_to_o = WB_MEM;
       end
       Store: begin
         rs2_enable_o = 1;
@@ -145,7 +142,6 @@ module IDU #(
       end
       Jal: begin
         rd_enable_o = 1;
-        writeback_to_o = WB_Next_PC;
         jal_o = 1;
       end
       Jalr: begin
@@ -158,17 +154,17 @@ module IDU #(
         rd_enable_o = 1;
         alu_2nd_src_o = 1;
         auipc_o = 1;
-        writeback_to_o = WB_ALU;  // pc + (imm << 12)
       end
       Lui: begin
-        rd_enable_o = 1;
+        rd_enable_o   = 1;
         alu_2nd_src_o = 1;
-        lui_o = 1;
-        writeback_to_o = WB_ALU;  // imm << 12
+        // lui_o = 1;
       end
-      Fence:   inst_illegal_o = 1;  // not supported yet
-      System:  inst_illegal_o = 1;  // not supported yet
-      default: inst_illegal_o = 1;
+      Env: begin
+        env_interrupt_o[0] = funct12 == 12'b000000000000;
+        env_interrupt_o[1] = funct12 == 12'b000000000001;
+      end
+      default: decode_error_o = 1;
     endcase
   end
 
@@ -220,13 +216,23 @@ module IDU #(
         endcase
       end
 
-      Lui:    alu_op_o = ALU_COPY_B;  // LUI
-      Auipc:  alu_op_o = ALU_ADD;     // AUIPC (PC + imm)
-      Jal:    alu_op_o = ALU_ADD;     // JAL (PC + 4)
-      Jalr:   alu_op_o = ALU_ADD;     // JALR (PC + 4)
-      Load:   alu_op_o = ALU_ADD;     // Load (base + offset)
-      Store:  alu_op_o = ALU_ADD;     // Store (base + offset)
-      Branch: alu_op_o = ALU_SUB;     // Branch (comparison)
+      Lui: alu_op_o = ALU_COPY_B;  // LUI
+      Auipc: alu_op_o = ALU_ADD;  // AUIPC (PC + imm)
+      Jal: alu_op_o = ALU_ADD;  // JAL (PC + 4)
+      Jalr: alu_op_o = ALU_ADD;  // JALR (PC + 4)
+      Load: alu_op_o = ALU_ADD;  // Load (base + offset)
+      Store: alu_op_o = ALU_ADD;  // Store (base + offset)
+      Branch: begin  // Branch (comparison)
+        case (funct3)
+          B_EQ: alu_op_o = ALU_SUB;
+          B_NE: alu_op_o = ALU_SUB;
+          B_LT: alu_op_o = ALU_SLT;
+          B_GE: alu_op_o = ALU_SLT;
+          B_LTU: alu_op_o = ALU_SLTU;
+          B_GEU: alu_op_o = ALU_SLTU;
+          default: decode_error_o = 1;
+        endcase
+      end
       default: alu_op_o = ALU_ADD;
     endcase
   end
