@@ -30,6 +30,6 @@ run: insert-arg
 
 debug: insert-arg
 	@echo "build $(IMAGE).bin for debug"
-	cp $(IMAGE).bin app.bin
+	cp $(IMAGE).bin $(BUILD_DIR)/app.bin
 
 .PHONY: insert-arg

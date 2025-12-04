@@ -10,3 +10,4 @@ obj_dir
 3rd-party/am-kernels/tests/alu-tests/build
 .result
 build
+.app.bin
