@@ -62,6 +62,7 @@ debug:
 all: default
 
 run: $(BIN) debug
+# 	@$^ > $(BUILD_DIR)/display.log
 	@$^
 
 clean:

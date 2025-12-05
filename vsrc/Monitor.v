@@ -26,7 +26,7 @@ module Monitor (
   wire [63:0] new_pc;
   PC Pc (
       .clk_i (clk_i),
-      .we_i  (nstate == NORMAL),
+      .we_i  (state == NORMAL),
       .rst_i (rst_i),
       .data_i(new_pc),
       .pc_o  (pc)
@@ -35,7 +35,6 @@ module Monitor (
   wire [31:0] inst;
 
   IFU Ifu (
-      .clk(clk_i),
       .pc_i(pc),
       .inst_o(inst),
       .fecth_error_o(interrupt[0])
@@ -106,7 +105,7 @@ module Monitor (
   );
 
   /* monitor state */
-  parameter NORMAL = 0, HALT = 1, ERROR = 2;
+  parameter RST = 0, NORMAL = 1, HALT = 2, ERROR = 3;
 
   reg [2:0] state, nstate;
 
@@ -120,15 +119,6 @@ module Monitor (
       nstate = HALT;
     end else begin
       nstate = NORMAL;
-    end
-  end
-
-  always @(posedge clk_i) begin
-
-    if (rst_i) begin
-      state <= NORMAL;  // meanwhile reset PC to 0x80000000
-    end else begin
-      state <= nstate;
     end
   end
 
@@ -210,12 +200,19 @@ module Monitor (
 
   always @(posedge clk_i) begin
     if (rst_i) begin
+      state <= RST;  // meanwhile reset PC to 0x80000000
+    end else begin
+      state <= nstate;
+    end
+
+    if (rst_i) begin
       for (int k = 0; k < 8; k++) segs_reg[k] <= SEGNONE;
     end else begin
       for (int k = 0; k < 8; k++) segs_reg[k] <= segs_combine[k];
     end
 
-    $display("Current Pc: %h", pc);
+    $strobe("Inst: %h | imme: %h | cur PC: %h | next PC: %h | next state: %d", inst, imme, pc,
+            new_pc, nstate);
   end
 
 endmodule

@@ -41,9 +41,9 @@ module IDU #(
 				Jal = 7'h6f, 
 				Auipc = 7'h17, 
 				Lui = 7'h37, 
-        Env = 7'h73,
-        R64ty = 7'h3b,
-				I64ty = 7'h1b;
+				Env = 7'h73,
+  // R64/I64 means R/I-type inst involved by  rv64I, eg: addw/addiw
+  R64ty = 7'h3b, I64ty = 7'h1b;
 
   /* ALU opcode */
   parameter 	
@@ -236,5 +236,9 @@ module IDU #(
       default: alu_op_o = ALU_ADD;
     endcase
   end
+
+  //   initial begin
+  //     $monitor("curInst: %h", inst_i);
+  //   end
 
 endmodule

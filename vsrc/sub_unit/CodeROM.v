@@ -3,7 +3,6 @@ module CodeROM #(
     DATA_WIDTH = 32,
     ROM_SIZE   = 12   // 2 ** ... bytes
 ) (
-    input clk,
     input [ADDR_WIDTH-1:0] addr_i,
     output reg [DATA_WIDTH-1:0] data_o,
     output reg illegal_access_o
@@ -12,16 +11,16 @@ module CodeROM #(
   reg [DATA_WIDTH-1:0] _rom[2**ROM_SIZE-1:0];
 
   initial begin
-    $readmemh("build/app.byte", _rom);
+    $readmemh("build/app.hex", _rom);
   end
 
-  always @(posedge clk) begin
+  always @(*) begin
     if (addr_i[1:0] == 2'b0) begin
-      illegal_access_o <= 0;
-      data_o <= _rom[addr_i[ROM_SIZE-1:0]];
+      illegal_access_o = 0;
+      data_o = _rom[addr_i[ROM_SIZE-1:0]/4];
     end else begin
-      illegal_access_o <= 1;
-      data_o <= 0;
+      illegal_access_o = 1;  // unalign
+      data_o = 0;
     end
 
   end

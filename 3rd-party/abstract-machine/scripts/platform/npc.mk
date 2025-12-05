@@ -30,6 +30,7 @@ run: insert-arg
 
 debug: insert-arg
 	@echo "build $(IMAGE).bin for debug"
-	objcopy -I binary -O verilog $(IMAGE).bin $(BUILD_DIR)/app.byte
+	objcopy -I binary -O verilog --reverse-bytes=4 --verilog-data-width=4 $(IMAGE).bin $(BUILD_DIR)/app.hex
+# 	xxd -p -c 4 $(IMAGE).bin | sed 's/\(..\)\(..\)\(..\)\(..\)/\4\3\2\1/' > $(BUILD_DIR)/app.hex
 
 .PHONY: insert-arg

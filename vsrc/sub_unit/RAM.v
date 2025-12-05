@@ -1,6 +1,6 @@
 module RAM #(
     DATA_WIDTH = 64,
-    RAM_SIZE   = 12
+    RAM_SIZE   = 16
 ) (
     input clk,
     input [RAM_SIZE-1:0] addr_i,

@@ -60,7 +60,8 @@ module EXU #(
   reg [DATA_WIDTH-1:0] mem_writein;
   reg [DATA_WIDTH-1:0] mem_readout;
   wire mem_access_error;
-  RAM #(DATA_WIDTH, RAM_SIZE) RvRam (
+
+  RAM #(DATA_WIDTH, RAM_SIZE) RegisterFile (
       .clk(clk),
       .addr_i(mem_addr),
       .access_mode_i(memread_i ? RAM_READ : (memwrite_i ? RAM_WRITE : RAM_NONE)),
@@ -77,7 +78,7 @@ module EXU #(
   reg [DATA_WIDTH -1:0] alu_A, alu_B;
   reg [DATA_WIDTH -1:0] alu_C;
 
-  ALU #(DATA_WIDTH) RvAlu (
+  ALU #(DATA_WIDTH) Alu (
       .A_i(alu_A),
       .B_i(alu_B),
       .opcode_i(alu_op_i),
@@ -100,6 +101,7 @@ module EXU #(
 
     /// drive alu_A
     if (rs1_enable_i) alu_A = rs1_data;
+    else if (jal_i) alu_A = pc_i;
     else if (jalr_i) alu_A = pc_i;
     else if (auipc_i) alu_A = pc_i;  // PC + (imm << 12)
     else alu_A = 0;
@@ -107,6 +109,7 @@ module EXU #(
     /// drive alu_B`
     if (rs2_enable_i) alu_B = rs2_data;
     else if (alu_2nd_src_i) alu_B = imme_i;
+    else if (jal_i) alu_B = 4;  // PC + 4
     else if (jalr_i) alu_B = 4;  // PC + 4
     else if (memread_i) alu_B = mem_readout;
     else alu_B = 0;
@@ -147,10 +150,15 @@ module EXU #(
         default: execute_error_o[UNKNOWN_BRTY] = 1;
       endcase
     end else if (jal_i) begin
-      new_pc_o = imme_i;
+      new_pc_o = imme_i + pc_i;
     end else if (jalr_i) begin
-      new_pc_o = imme_i;
+      new_pc_o = rs1_data;
     end
   end
+
+  //   initial begin
+  //     $monitor("T=%0t | IsJal: %d | IsJalr: %d | last_imme: %h | cur PC: %h | next PC: %h", $time,
+  //              jal_i, jalr_i, imme_i, pc_i, new_pc_o);
+  //   end
 
 endmodule
