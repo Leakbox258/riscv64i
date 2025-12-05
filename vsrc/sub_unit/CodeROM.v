@@ -22,7 +22,6 @@ module CodeROM #(
       illegal_access_o = 1;  // unalign
       data_o = 0;
     end
-
   end
 
 endmodule

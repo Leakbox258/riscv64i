@@ -1,16 +1,10 @@
 module IFU #(
-    DATA_WIDTH = 32,
-    PC_WIDTH   = 64
+    DATA_WIDTH = 32
 ) (
-    input [PC_WIDTH-1:0] pc_i,
-    output [DATA_WIDTH-1:0] inst_o,
-    output fecth_error_o
+    input  [DATA_WIDTH-1:0] data_i,
+    output [DATA_WIDTH-1:0] inst_o
 );
 
-  CodeROM #(64, 32, 12) codeROM (
-      .addr_i(pc_i),
-      .data_o(inst_o),
-      .illegal_access_o(fecth_error_o)
-  );
+  assign inst_o = data_i;
 
 endmodule

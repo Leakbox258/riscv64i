@@ -26,15 +26,13 @@ module IMMGen #(
 
   function automatic logic [DATA_WIDTH-1:0] sext_imme_12(input logic [11:0] value);
     logic [DATA_WIDTH-1:0] sexted;
-    if (value[11]) sexted = {{(DATA_WIDTH - 12) {1'b1}}, value};
-    else sexted = {{(DATA_WIDTH - 12) {1'b0}}, value};
+    sexted = {{(DATA_WIDTH - 12) {value[11]}}, value};
     return sexted;
   endfunction
 
   function automatic logic [DATA_WIDTH-1:0] sext_imme_32(input logic [31:0] value);
     logic [DATA_WIDTH-1:0] sexted;
-    if (value[31]) sexted = {{(DATA_WIDTH - 32) {1'b1}}, value};
-    else sexted = {{(DATA_WIDTH - 32) {1'b0}}, value};
+    sexted = {{(DATA_WIDTH - 32) {value[31]}}, value};
     return sexted;
   endfunction
 

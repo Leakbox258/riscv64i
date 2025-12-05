@@ -1,5 +1,4 @@
 module IDU #(
-    DATA_WIDTH = 64,
     RF_SIZE = 5
 ) (
     input [31:0] inst_i,
@@ -24,8 +23,6 @@ module IDU #(
     output [RF_SIZE-1:0] rs2_o,
     output [2:0] memwid_o,
     output [2:0] brty_o,
-
-    output [DATA_WIDTH-1:0] imme_o,
 
     output reg decode_error_o,
     output reg [1:0] env_interrupt_o  // ebreak, ecall 
@@ -76,11 +73,6 @@ module IDU #(
   assign rs2_o = inst_i[24:20];
   assign memwid_o = funct3;
   assign brty_o = funct3;
-
-  IMMGen immeGen (
-      .inst_i(inst_i),
-      .imme_o(imme_o)
-  );
 
   /// get alu control signals 
   always @(*) begin
