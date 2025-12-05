@@ -11,3 +11,4 @@ obj_dir
 .result
 build
 .app.bin
+Makefile_Debug.dummy

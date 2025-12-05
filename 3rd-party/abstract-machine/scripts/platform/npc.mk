@@ -30,6 +30,6 @@ run: insert-arg
 
 debug: insert-arg
 	@echo "build $(IMAGE).bin for debug"
-	cp $(IMAGE).bin $(BUILD_DIR)/app.bin
+	objcopy -I binary -O verilog $(IMAGE).bin $(BUILD_DIR)/app.byte
 
 .PHONY: insert-arg

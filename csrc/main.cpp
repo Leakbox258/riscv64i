@@ -35,6 +35,7 @@ int main() {
   while (1) {
     nvboard_update();
     single_cycle();
+    sleep(1);
   }
 
   return 0;

@@ -124,7 +124,7 @@ else
 # $(1): library name
 define LIB_TEMPLATE =
 $$(ABSTRACT_MACHINE_DIR)/$(1)/build/$(1)-$$(ARCH).a: force
-	@$$(MAKE) -s -C $$(ABSTRACT_MACHINE_DIR)/$(1) archive
+	@$$(MAKE) -s -C $$(ABSTRACT_MACHINE_DIR)/$(1) ABSTRACT_MACHINE_DIR=$(abspath $(ABSTRACT_MACHINE_DIR)) archive
 LINKAGE += $$(ABSTRACT_MACHINE_DIR)/$(1)/build/$(1)-$$(ARCH).a
 endef
 

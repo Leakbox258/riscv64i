@@ -11,37 +11,17 @@ module CodeROM #(
 
   reg [DATA_WIDTH-1:0] _rom[2**ROM_SIZE-1:0];
 
-  // initial begin
-  //   $readmemh("app.bin", _rom);
-  // end
-
-  integer fd, count;
   initial begin
-    fd = $fopen("./build/app.bin", "rb");
-
-    if (fd == 0) begin
-      fd = $fopen("app.bin", "rb");
-    end
-
-    if (fd == 0) begin
-      $display("ERROR: Cannot find elf file.");
-      $fclose(fd);
-      //   $finish(2);
-    end else begin
-      count = $fread(_rom, fd, 0, 2 ** ROM_SIZE);
-      $display("LOG: Read %d bytes from app.bin.", count);
-      $fclose(fd);
-    end
-
+    $readmemh("build/app.byte", _rom);
   end
 
   always @(posedge clk) begin
-    if (addr_i % 4 == 0) begin
+    if (addr_i[1:0] == 2'b0) begin
       illegal_access_o <= 0;
-      data_o <= 0;
+      data_o <= _rom[addr_i[ROM_SIZE-1:0]];
     end else begin
       illegal_access_o <= 1;
-      data_o <= _rom[addr_i[ROM_SIZE-1:0]];
+      data_o <= 0;
     end
 
   end

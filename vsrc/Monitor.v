@@ -11,7 +11,7 @@ module Monitor (
     output [7:0] seg6,
     output [7:0] seg7
 );
-  /* Interrupt code */
+  /* Interrupt code, which will display on the segs with 3 horizon lines */
   parameter FetchError = 0, 
             DecodeError = 1,
             MemAccessError = 2,
@@ -214,6 +214,8 @@ module Monitor (
     end else begin
       for (int k = 0; k < 8; k++) segs_reg[k] <= segs_combine[k];
     end
+
+    $display("Current Pc: %h", pc);
   end
 
 endmodule
