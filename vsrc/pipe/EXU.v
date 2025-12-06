@@ -5,7 +5,6 @@ module EXU #(
     /* controls */
     input rs1_enable_i,
     input rs2_enable_i,
-    input memread_i,
     input alu_2nd_src_i,
     input jal_i,
     input jalr_i,
@@ -16,9 +15,6 @@ module EXU #(
     input [DATA_WIDTH-1:0] rs2_i,
     input [DATA_WIDTH-1:0] pc_i,
     input [DATA_WIDTH-1:0] imme_i,
-
-
-    input [DATA_WIDTH-1:0] mem_read_i,
 
     output reg [DATA_WIDTH-1:0] alu_A_o,
     output reg [DATA_WIDTH-1:0] alu_B_o
@@ -38,7 +34,6 @@ module EXU #(
     else if (alu_2nd_src_i) alu_B_o = imme_i;
     else if (jal_i) alu_B_o = 4;  // PC + 4
     else if (jalr_i) alu_B_o = 4;  // PC + 4
-    else if (memread_i) alu_B_o = mem_read_i;
     else alu_B_o = 0;
   end
 

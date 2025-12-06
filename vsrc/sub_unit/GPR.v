@@ -9,8 +9,8 @@ module GPR #(
     input write_enable_i,
     input [DATA_WIDTH-1:0] data_i,
 
-    output reg [DATA_WIDTH-1:0] rs1_data_o,
-    output reg [DATA_WIDTH-1:0] rs2_data_o
+    output [DATA_WIDTH-1:0] rs1_data_o,
+    output [DATA_WIDTH-1:0] rs2_data_o
 );
 
   reg [DATA_WIDTH-1:0] _gpr[2**RF_SIZE-1:0];
@@ -23,10 +23,8 @@ module GPR #(
             rd_i, data_i);
   end
 
-  always @(*) begin
-    rs1_data_o = rs1_i != 0 ? _gpr[rs1_i] : 0;
-    rs2_data_o = rs2_i != 0 ? _gpr[rs2_i] : 0;
-  end
-
+  /// Write First
+  assign rs1_data_o = (rd_i == rs1_i && write_enable_i && rd_i != 0) ? data_i : _gpr[rs1_i];
+  assign rs2_data_o = (rd_i == rs2_i && write_enable_i && rd_i != 0) ? data_i : _gpr[rs2_i];
 
 endmodule

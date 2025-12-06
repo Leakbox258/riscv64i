@@ -16,14 +16,13 @@ module CPU #(
             UnknownBrtyError = 3,
             ECALL = 4,
             EBREAK = 5;
-  parameter RAM_NONE = 0, RAM_READ = 1, RAM_WRITE = 2;
-
 
   /// Internal wire
   wire [DATA_WIDTH-1:0] imme, mem_write, mem_read, alu_A, alu_B, alu_C, rs1_data, rs2_data;
+  reg [DATA_WIDTH-1:0] comited_data;
   wire [INST_WIDTH-1:0] data, inst;
   wire [RF_SIZE-1:0] rd, rs1, rs2;
-  wire [RAM_SIZE-1:0] mem_addr = rs1_data[RAM_SIZE-1:0] + imme[RAM_SIZE-1:0]; // TODO: convertion virtual -> physical
+  wire [RAM_SIZE-1:0] memaddr = rs1_data[RAM_SIZE-1:0] + imme[RAM_SIZE-1:0]; // TODO: convertion virtual -> physical
   wire [2:0] memwid, brty;
   wire [3:0] alu_op;
   wire rd_enable, rs1_enable, rs2_enable, memread, memwrite, alu_2nd_src, branch, jal, jalr, auipc;
@@ -43,10 +42,11 @@ module CPU #(
 
   RAM #(DATA_WIDTH, RAM_SIZE) RegisterFile (
       .clk(clk_i),
-      .addr_i(mem_addr),
-      .access_mode_i(memread ? RAM_READ : (memwrite ? RAM_WRITE : RAM_NONE)),
+      .addr_i(memaddr),
+      .read_i(memread),
+      .write_i(memwrite),
       .data_i(mem_write),
-      .memwid_i(memwid),
+      .wid_i(memwid),
 
       .data_o(mem_read),
       .illegal_access_o(mem_access_error)
@@ -58,7 +58,7 @@ module CPU #(
       .rs2_i(rs2),
       .rd_i(rd),
       .write_enable_i(rd_enable),
-      .data_i(alu_C),  // from ALU
+      .data_i(comited_data),  // need commit unit (temporal logic)
 
       .rs1_data_o(rs1_data),
       .rs2_data_o(rs2_data)
@@ -113,7 +113,6 @@ module CPU #(
   EXU Exu (
       .rs1_enable_i(rs1_enable),
       .rs2_enable_i(rs2_enable),
-      .memread_i(memread),
       .alu_2nd_src_i(alu_2nd_src),
       .jal_i(jal),
       .jalr_i(jalr),
@@ -123,8 +122,6 @@ module CPU #(
       .rs2_i (rs2_data),
       .pc_i  (pc_i),
       .imme_i(imme),
-
-      .mem_read_i(mem_read),
 
       .alu_A_o(alu_A),
       .alu_B_o(alu_B)
