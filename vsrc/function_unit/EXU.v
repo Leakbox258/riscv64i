@@ -3,9 +3,9 @@ module EXU #(
 ) (
 
     /* controls */
-    input rs1_enable_i,
-    input rs2_enable_i,
-    input alu_2nd_src_i,
+    input ers1_i,
+    input ers2_i,
+    input alusel2_i,
     input jal_i,
     input jalr_i,
     input auipc_i,
@@ -23,15 +23,15 @@ module EXU #(
   always @(*) begin
 
     /// drive alu_A_o
-    if (rs1_enable_i) alu_A_o = rs1_i;
+    if (ers1_i) alu_A_o = rs1_i;
     else if (jal_i) alu_A_o = pc_i;
     else if (jalr_i) alu_A_o = pc_i;
     else if (auipc_i) alu_A_o = pc_i;  // PC + (imm << 12)
     else alu_A_o = 0;
 
     /// drive alu_B_o`
-    if (rs2_enable_i) alu_B_o = rs2_i;
-    else if (alu_2nd_src_i) alu_B_o = imme_i;
+    if (ers2_i) alu_B_o = rs2_i;
+    else if (alusel2_i) alu_B_o = imme_i;
     else if (jal_i) alu_B_o = 4;  // PC + 4
     else if (jalr_i) alu_B_o = 4;  // PC + 4
     else alu_B_o = 0;
