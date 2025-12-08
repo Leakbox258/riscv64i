@@ -36,7 +36,7 @@ module IMMGen #(
     return sexted;
   endfunction
 
-  always @(*) begin
+  always_comb begin
     case (opcode)
       Ity: begin
         imme_o = sext_imme_12(inst_i[31:20]);

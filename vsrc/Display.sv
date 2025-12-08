@@ -57,7 +57,7 @@ module Display #(
     endcase
   endfunction
 
-  always @(*) begin
+  always_comb begin
     for (int k = 0; k < 8; k++) segs_combine[k] = SEGNONE;
 
     if (nstate_i == NORMAL | nstate_i == HALT) begin
@@ -78,7 +78,7 @@ module Display #(
     end
   end
 
-  always @(posedge clk_i) begin
+  always_ff @(posedge clk_i) begin
     if (rst_i) begin
       for (int k = 0; k < 8; k++) segs_reg[k] <= SEGNONE;
     end else begin

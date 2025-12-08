@@ -54,7 +54,7 @@ module RAM #(
     return data_sext;
   endfunction
 
-  always @(*) begin
+  always_comb begin
     data_o = 0;
 
     /// Read / Load (Write First)
@@ -86,7 +86,7 @@ module RAM #(
     end
   end
 
-  always @(posedge clk) begin
+  always_ff @(posedge clk) begin
     /// Write / Store
     if (ewr_i == Write) begin
       case (wid_i)

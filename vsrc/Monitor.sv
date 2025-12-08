@@ -69,7 +69,7 @@ module Monitor #(
 
   reg [2:0] state, nstate;
 
-  always @(*) begin
+  always_comb begin
     if (interrupt[Anormaly:0] != 0) begin
       nstate = ERROR;
     end else if (interrupt[ECALL]) begin
@@ -82,7 +82,7 @@ module Monitor #(
     end
   end
 
-  always @(posedge clk_i) begin
+  always_ff @(posedge clk_i) begin
     if (rst_i) begin
       state <= RST;  // meanwhile reset PC to 0x80000000
     end else begin

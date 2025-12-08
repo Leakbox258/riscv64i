@@ -19,7 +19,7 @@ module ALU #(
 
   reg [DATA_WIDTH/2-1 : 0] intermedia;
 
-  always @(*) begin
+  always_comb begin
     intermedia = 0;
 
     case (opcode_i)

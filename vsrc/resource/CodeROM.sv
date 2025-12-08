@@ -1,7 +1,7 @@
 module CodeROM #(
     ADDR_WIDTH = 64,
     DATA_WIDTH = 32,
-    ROM_SIZE   = 12   // 2 ** ... bytes
+    ROM_SIZE   = 12
 ) (
     input [ADDR_WIDTH-1:0] addr_i,
     output logic [DATA_WIDTH-1:0] data_o,
@@ -14,7 +14,7 @@ module CodeROM #(
     $readmemh("build/app.hex", _rom);
   end
 
-  always @(*) begin
+  always_comb begin
     if (addr_i[1:0] == 2'b0) begin
       illegal_access_o = 0;
       data_o = _rom[addr_i[ROM_SIZE-1:0]/4];

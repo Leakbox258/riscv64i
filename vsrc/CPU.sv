@@ -1,10 +1,8 @@
-`include "pipeline/pipeline_pkg.sv"  // 引入包文件
+`include "pipeline_pkg.sv"
 
 module CPU
   import pipeline_pkg::*;
-#(
-    RAM_SIZE = 16
-) (
+(
     input logic clk_i,
     input logic rst_i,
     input logic [DATA_WIDTH-1:0] pc_i,
@@ -14,8 +12,7 @@ module CPU
 );
   parameter FetchError = 0, DecodeError = 1, ECALL = 2, EBREAK = 3;
   logic [3:0] exception;
-  logic flush_if, flush_id;
-  logic stall;
+
 
   // =======================================================================
   // 1. Instruction Fetch
@@ -44,17 +41,34 @@ module CPU
       .flush_i(flush_if),
       .stall_i(stall),
 
-      .data_i(ifid_in),  // [Change] 传入结构体
-      .data_o(ifid_out)  // [Change] 输出结构体
+      .data_i(ifid_in),
+      .data_o(ifid_out)
   );
 
   // =======================================================================
   // 2. ID
   // =======================================================================
   IDEX_Pipe_t idex_in, idex_out;
-  logic [2:0][RF_SIZE-1:0] regi_id;
+  logic [2:0][RF_SIZE-1:0] id_regi;
+
   assign idex_in.PC = ifid_out.PC;
-  assign idex_in.Rd_Addr = regi_id[IDX_RD];
+  assign idex_in.RegIdx = id_regi;
+
+  always_comb begin
+    case (Forward_RD1)
+      MEM_TO_RD: idex_in.RegData[IDX_RS1] = exmem_out.ALU_Result;
+      ALUC_TO_RD: idex_in.RegData[IDX_RS1] = alu_C;
+      default: idex_in.RegData[IDX_RS1] = GprReadRs1;
+    endcase
+  end
+
+  always_comb begin
+    case (Forward_RD2)
+      MEM_TO_RD: idex_in.RegData[IDX_RS2] = exmem_out.ALU_Result;
+      ALUC_TO_RD: idex_in.RegData[IDX_RS2] = alu_C;
+      default: idex_in.RegData[IDX_RS2] = GprReadRs2;
+    endcase
+  end
 
   IDU idu (
       .inst_i(ifid_out.Inst),
@@ -62,24 +76,25 @@ module CPU
       .enable_o  (idex_in.Enable),
       .aluop_o   (idex_in.ALUOp),
       .specinst_o(idex_in.SpecInst),
-      .regi_o    (regi_id),
+      .regi_o    (id_regi),
       .detail_o  (idex_in.Detail),
 
       .decode_error_o (exception[DecodeError]),
       .env_exception_o(exception[EBREAK:ECALL])
   );
 
+  logic [DATA_WIDTH-1:0] GprReadRs1, GprReadRs2;
   GPR gpr (
       .clk  (clk_i),
-      .rs1_i(regi_id[IDX_RS1]),  // ID
-      .rs2_i(regi_id[IDX_RS2]),  // ID
+      .rs1_i(id_regi[IDX_RS1]),  // ID
+      .rs2_i(id_regi[IDX_RS2]),  // ID
 
       .rd_i(memwb_out.RD_Addr),  // WB
       .write_enable_i(memwb_out.Reg_WEn),  // WB
       .data_i(memwb_out.WB_Data),  // WB
 
-      .rs1_data_o(idex_in.RegData[IDX_RS1]),
-      .rs2_data_o(idex_in.RegData[IDX_RS2])
+      .rs1_data_o(GprReadRs1),
+      .rs2_data_o(GprReadRs2)
   );
 
   IMMGen immgen (
@@ -90,6 +105,7 @@ module CPU
   // =======================================================================
   // ID/EX
   // =======================================================================
+
   IDEX idex_reg (
       .clk_i  (clk_i),
       .rst_i  (rst_i),
@@ -103,9 +119,28 @@ module CPU
   // =======================================================================
   // 3. EX
   // =======================================================================
-  logic [DATA_WIDTH-1:0] alu_A, alu_B, alu_C;
+  logic [DATA_WIDTH-1:0] alu_A, alu_B;
+  logic [DATA_WIDTH-1:0] alu_C;
   logic [DATA_WIDTH-1:0] pcn_ex;
 
+  always_comb begin
+    case (Forward_A)
+      MEM_TO_ALU: alu_A = exmem_out.ALU_Result;
+      WB_TO_ALU: alu_A = memwb_in.WB_Data;
+      default: alu_A = ExMuxAluA;
+    endcase
+  end
+
+  always_comb begin
+    case (Forward_B)
+      MEM_TO_ALU: alu_B = exmem_out.ALU_Result;
+      WB_TO_ALU: alu_B = memwb_in.WB_Data;
+      default: alu_B = ExMuxAluB;
+    endcase
+  end
+
+
+  logic [DATA_WIDTH-1:0] ExMuxAluA, ExMuxAluB;
   EXU Exu (
       .ers1_i(idex_out.Enable[IDX_RS1]),
       .ers2_i(idex_out.Enable[IDX_RS2]),
@@ -116,8 +151,8 @@ module CPU
       .pc_i  (idex_out.PC),
       .imme_i(idex_out.Imm),
 
-      .alu_A_o(alu_A),
-      .alu_B_o(alu_B)
+      .alu_A_o(ExMuxAluA),
+      .alu_B_o(ExMuxAluB)
   );
 
   ALU Alu (
@@ -148,7 +183,7 @@ module CPU
   assign exmem_in.ALU_Result = alu_C;
   assign exmem_in.Store_Data = idex_out.RegData[IDX_RS2];
   assign exmem_in.RegData = idex_out.RegData[IDX_RS2:IDX_RS1];
-  assign exmem_in.RD_Addr = idex_out.Rd_Addr;
+  assign exmem_in.RegIdx = idex_out.RegIdx;
   assign exmem_in.Reg_WEn = idex_out.Enable[IDX_RD];
   assign exmem_in.Mem_REn = idex_out.Enable[IDX_MREAD];
   assign exmem_in.Mem_WEn = idex_out.Enable[IDX_MWRITE];
@@ -166,10 +201,12 @@ module CPU
   // =======================================================================
   // 4. MEM
   // =======================================================================
+  logic [RAM_SIZE-1:0] mem_addr_exmem;
+  assign mem_addr_exmem = exmem_out.ALU_Result[RAM_SIZE-1:0];
 
   RAM Ram (
       .clk(clk_i),
-      .addr_i(exmem_out.ALU_Result[RAM_SIZE-1:0]),
+      .addr_i(mem_addr_exmem),
       .ewr_i(exmem_out.Mem_REn ? 1'b0 : (exmem_out.Mem_WEn ? 1'b1 : 1'bz)),
       .data_i(exmem_out.Store_Data),
       .wid_i(exmem_out.Detail),
@@ -184,7 +221,7 @@ module CPU
 
   assign memwb_in.PC      = exmem_out.PC;
   assign memwb_in.PC_Next = exmem_out.PC_Next;
-  assign memwb_in.RD_Addr = exmem_out.RD_Addr;
+  assign memwb_in.RD_Addr = exmem_out.RegIdx[IDX_RD];
   assign memwb_in.Reg_WEn = exmem_out.Reg_WEn;
   assign memwb_in.WB_Data = memdata_mem;
 
@@ -196,43 +233,74 @@ module CPU
   );
 
   // =======================================================================
-  // controls, bypass
+  // Exceptions
   // =======================================================================
   always_ff @(posedge clk_i) begin
     if (rst_i) exceptions_o <= 4'b0;
     else exceptions_o <= exception;
   end
 
+  // =======================================================================
+  // Forward
+  // ======================================================================= 
+
+  logic [1:0] Forward_RD1, Forward_RD2;
+  logic [1:0] Forward_A, Forward_B;
+
+  Forward Forward (
+      .idex_in  (idex_in),    // ID
+      .idex_out (idex_out),   // EX
+      .exmem_out(exmem_out),  // MEM
+      .memwb_out(memwb_out),  // WB
+
+      .Forward_RD1(Forward_RD1),
+      .Forward_RD2(Forward_RD2),
+      .Forward_A  (Forward_A),
+      .Forward_B  (Forward_B)
+  );
+
+
+  // =======================================================================
+  // Stall
+  // ======================================================================= 
+  logic stall;
+
+  Stall Stall (
+      .exmem_out(exmem_out),
+      .idex_out (idex_out),
+
+      .stall(stall)
+  );
+
+  // =======================================================================
+  // Flush
+  // ======================================================================= 
+  logic flush_if, flush_id;
+
+  Flush Flush (
+      .exception(exception),
+      .pc(exmem_in.PC),
+      .pcn(exmem_in.PC_Next),
+
+      .flush_id(flush_id),
+      .flush_if(flush_if),
+      .prediction_failed(prediction_failed)
+  );
+
+  // =======================================================================
+  // Update PC
+  // ======================================================================= 
+  logic prediction_failed;
+
   always_comb begin
-    flush_if = 1'b0;
-    flush_id = 1'b0;
-    stall    = 1'b0;
-    new_pc_o = pcn_ex;
-
-    if (exception[FetchError]) flush_if = 1'b1;
-    if (exception[DecodeError]) begin
-      flush_if = 1'b1;
-      flush_id = 1'b1;
-    end
-
-    if (ifid_out.PC + 4 != pcn_ex) begin
-      flush_if = 1'b1;
-      flush_id = 1'b1;
-    end
-
-    if (exmem_out.Mem_REn && exmem_out.Reg_WEn && 
-           (exmem_out.RD_Addr == regi_id[IDX_RS1] || 
-            exmem_out.RD_Addr == regi_id[IDX_RS2])) begin
-      stall = 1'b1;
-    end
-
     if (stall) begin
-      new_pc_o = ifid_out.PC;
-    end else if (ifid_out.PC + 4 == pcn_ex) begin
-      new_pc_o = ifid_out.PC + 4;
+      new_pc_o = pc_i;
+    end else if (prediction_failed) begin
+      new_pc_o = exmem_in.PC_Next;
     end else begin
-      new_pc_o = pcn_ex;
+      new_pc_o = pc_i + 4;
     end
+
   end
 
 endmodule

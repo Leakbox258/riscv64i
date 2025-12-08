@@ -15,7 +15,7 @@ module GPR #(
 
   reg [DATA_WIDTH-1:0] _gpr[2**RF_SIZE-1:0];
 
-  always @(posedge clk) begin
+  always_ff @(posedge clk) begin
 
     if (write_enable_i && rd_i != 0) _gpr[rd_i] <= data_i;
 

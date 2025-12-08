@@ -10,7 +10,7 @@ module PC (
 
   reg [63:0] _pc;
 
-  always @(posedge clk_i) begin
+  always_ff @(posedge clk_i) begin
     if (rst_i) _pc <= 64'h80000000;
     else if (ewrite_i) _pc <= data_i;
   end

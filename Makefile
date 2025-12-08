@@ -7,6 +7,8 @@ VERILATOR_CFLAGS += -MMD --build -cc \
 					-O3 --x-assign fast \
 					--x-initial fast --noassert
 
+VERILATOR_INCLUDE += -I./vsrc/pkg
+
 BUILD_DIR = ./build
 AM_KERNELS_CPU_TESTS_DIR = ./3rd-party/am-kernels/tests/cpu-tests
 ABSTRACT_MACHINE_DIR = ./3rd-party/abstract-machine
@@ -24,7 +26,7 @@ $(SRC_AUTO_BIND): $(NXDC_FILES)
 	python3 $(NVBOARD_HOME)/scripts/auto_pin_bind.py $^ $@
 
 # project source
-VSRCS = $(shell find $(abspath ./vsrc) -name "*.v")
+VSRCS = $(shell find $(abspath ./vsrc) -name "*.v" -or -name "*.sv")
 CSRCS = $(shell find $(abspath ./csrc) -name "*.c" -or -name "*.cc" -or -name "*.cpp")
 CSRCS += $(SRC_AUTO_BIND)
 
@@ -37,7 +39,7 @@ CXXFLAGS += $(INCFLAGS) -DTOP_NAME="\"V$(TOPNAME)\""
 
 $(BIN): $(VSRCS) $(CSRCS) $(NVBOARD_ARCHIVE)
 	@rm -rf $(OBJ_DIR)
-	$(VERILATOR) $(VERILATOR_CFLAGS) \
+	$(VERILATOR) $(VERILATOR_CFLAGS) $(VERILATOR_INCLUDE) \
 		--top-module $(TOPNAME) $^ \
 		$(addprefix -CFLAGS , $(CXXFLAGS)) \
 		$(addprefix -LDFLAGS , $(LDFLAGS)) \

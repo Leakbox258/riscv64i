@@ -20,7 +20,7 @@ module EXU #(
   /* Enum Specific Inst */
   parameter JAL = 1, JALR = 2, AUIPC = 3, LUI = 4;
 
-  always @(*) begin
+  always_comb begin
 
     /// drive alu_A_o
     if (ers1_i) alu_A_o = rs1_i;

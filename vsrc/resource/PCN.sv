@@ -18,7 +18,7 @@ module PCN #(
   /* Enum Branch type */
   parameter B_EQ = 3'b000, B_NE = 3'b001, B_LT = 3'b100, B_GE = 3'b101, B_LTU = 3'b110, B_GEU = 3'b111;
 
-  always @(*) begin
+  always_comb begin
     pcn_o = pc_i + 4;
     if (specinst_i == BR) begin
       case (detail_i)

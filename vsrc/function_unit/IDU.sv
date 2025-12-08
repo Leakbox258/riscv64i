@@ -73,7 +73,7 @@ module IDU #(
   assign decode_error_o = |decode_error;
 
   /// get alu control signals 
-  always @(*) begin
+  always_comb begin
     /// set default value
     enable_o = 5'b0;
 
@@ -153,7 +153,7 @@ module IDU #(
   end
 
   /// get alu opcode
-  always @(*) begin
+  always_comb begin
     decode_error[2] = 0;
 
     case (opcode)
