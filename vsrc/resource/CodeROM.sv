@@ -4,11 +4,11 @@ module CodeROM #(
     ROM_SIZE   = 12   // 2 ** ... bytes
 ) (
     input [ADDR_WIDTH-1:0] addr_i,
-    output reg [DATA_WIDTH-1:0] data_o,
-    output reg illegal_access_o
+    output logic [DATA_WIDTH-1:0] data_o,
+    output logic illegal_access_o
 );
 
-  reg [DATA_WIDTH-1:0] _rom[2**ROM_SIZE-1:0];
+  logic [DATA_WIDTH-1:0] _rom[2**ROM_SIZE-1:0];
 
   initial begin
     $readmemh("build/app.hex", _rom);

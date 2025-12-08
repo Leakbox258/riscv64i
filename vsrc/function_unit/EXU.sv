@@ -5,10 +5,7 @@ module EXU #(
     /* controls */
     input ers1_i,
     input ers2_i,
-    input alusel2_i,
-    input jal_i,
-    input jalr_i,
-    input auipc_i,
+    input [2:0] specinst_i,
 
     /* resources */
     input [DATA_WIDTH-1:0] rs1_i,
@@ -20,21 +17,24 @@ module EXU #(
     output reg [DATA_WIDTH-1:0] alu_B_o
 );
 
+  /* Enum Specific Inst */
+  parameter JAL = 1, JALR = 2, AUIPC = 3, LUI = 4;
+
   always @(*) begin
 
     /// drive alu_A_o
     if (ers1_i) alu_A_o = rs1_i;
-    else if (jal_i) alu_A_o = pc_i;
-    else if (jalr_i) alu_A_o = pc_i;
-    else if (auipc_i) alu_A_o = pc_i;  // PC + (imm << 12)
+    else if (specinst_i == JAL) alu_A_o = pc_i;
+    else if (specinst_i == JALR) alu_A_o = pc_i;
+    else if (specinst_i == AUIPC) alu_A_o = pc_i;  // PC + (imm << 12)
     else alu_A_o = 0;
 
-    /// drive alu_B_o`
+    /// drive alu_B_o
     if (ers2_i) alu_B_o = rs2_i;
-    else if (alusel2_i) alu_B_o = imme_i;
-    else if (jal_i) alu_B_o = 4;  // PC + 4
-    else if (jalr_i) alu_B_o = 4;  // PC + 4
-    else alu_B_o = 0;
+    else if (specinst_i == LUI) alu_B_o = 0;
+    else if (specinst_i == JAL) alu_B_o = 4;  // PC + 4
+    else if (specinst_i == JALR) alu_B_o = 4;  // PC + 4
+    else alu_B_o = imme_i;
   end
 
   //   initial begin

@@ -5,7 +5,7 @@ module Display #(
     input rst_i,
     input [DATA_WIDTH-1:0] pc_i,
     input [2:0] nstate_i,
-    input [5:0] interrupts_i,
+    input [3:0] interrupts_i,
 
     output reg [7:0] segs_reg[7:0]
 );

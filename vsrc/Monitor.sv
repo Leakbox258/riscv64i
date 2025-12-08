@@ -26,22 +26,23 @@ module Monitor #(
   ECALL = 4, EBREAK = 5;
   parameter Anormaly = 3;
 
-  wire [5:0] interrupt;
+  wire [3:0] interrupt;
   wire [DATA_WIDTH-1:0] pc, new_pc;
 
   PC Pc (
-      .clk_i (clk_i),
-      .we_i  (state == NORMAL),
-      .rst_i (rst_i),
+      .clk_i(clk_i),
+      .ewrite_i(state == NORMAL),
+      .rst_i(rst_i),
       .data_i(new_pc),
-      .pc_o  (pc)
+      .pc_o(pc)
   );
 
-  CPU #(DATA_WIDTH, INST_WIDTH, RF_SIZE, RAM_SIZE) Cpu (
+  CPU #(DATA_WIDTH) Cpu (
       .clk_i(clk_i),
+      .rst_i(rst_i),
       .pc_i(pc),
       .new_pc_o(new_pc),
-      .interrupts_o(interrupt)
+      .exceptions_o(interrupt)
   );
 
   wire [7:0] segs[7:0];

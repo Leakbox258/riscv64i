@@ -5,25 +5,14 @@ module IDU #(
     input [INST_WIDTH-1:0] inst_i,
 
     /* controls */
-    output reg erd_o,
-    output reg ers1_o,
-    output reg ers2_o,
-    output reg ememread_o,
-    output reg ememwrite_o,
+    output reg [4:0] enable_o,
+
     output reg [3:0] aluop_o,
-    output reg alusel2_o,
-    output reg branch_o,
-    output reg jal_o,
-    output reg jalr_o,
-    output reg auipc_o,
-    // output reg lui_o,
+    output reg [2:0] specinst_o,
 
     /* resources */
-    output [RF_SIZE-1:0] rd_o,
-    output [RF_SIZE-1:0] rs1_o,
-    output [RF_SIZE-1:0] rs2_o,
-    output [2:0] memwid_o,
-    output [2:0] brty_o,
+    output [2:0][RF_SIZE-1:0] regi_o,
+    output [2:0] detail_o,
 
     output reg decode_error_o,
     output reg [1:0] env_exception_o  // ebreak, ecall 
@@ -53,6 +42,12 @@ module IDU #(
 			ALU_ADDW = 11, ALU_SUBW = 12,
 			ALU_SLLW = 13, ALU_SRLW = 14, ALU_SRAW = 15;
 
+  /* Enable params */
+  parameter RD = 0, RS1 = 1, RS2 = 2, MREAD = 3, MWRITE = 4;
+
+  /* Enum Specific Inst */
+  parameter BR = 0, JAL = 1, JALR = 2, AUIPC = 3, LUI = 4;
+
   /* Enum Branch type */
   parameter B_EQ = 3'b000, B_NE = 3'b001, B_LT = 3'b100, B_GE = 3'b101, B_LTU = 3'b110, B_GEU = 3'b111;
 
@@ -70,97 +65,84 @@ module IDU #(
   assign funct7 = inst_i[31:25];
   assign funct12 = inst_i[31:20];
 
-  assign rd_o = inst_i[11:7];
-  assign rs1_o = inst_i[19:15];
-  assign rs2_o = inst_i[24:20];
-  assign memwid_o = funct3;
-  assign brty_o = funct3;
+  assign regi_o[RD] = inst_i[11:7];
+  assign regi_o[RS1] = inst_i[19:15];
+  assign regi_o[RS2] = inst_i[24:20];
+  assign detail_o = funct3;
 
   assign decode_error_o = |decode_error;
 
   /// get alu control signals 
   always @(*) begin
     /// set default value
-    erd_o = 0;
-    ers1_o = 0;
-    ers2_o = 0;
+    enable_o = 5'b0;
 
-    alusel2_o = 0;
-
-    ememread_o = 0;
-    ememwrite_o = 0;
-    branch_o = 0;
-    jal_o = 0;
-    jalr_o = 0;
-    auipc_o = 0;
-    // lui_o = 0;
+    specinst_o = 3'b0;
 
     decode_error[1:0] = 2'b0;
     env_exception_o = 2'b00;
 
     case (opcode)
       Rty: begin
-        erd_o  = 1;
-        ers1_o = 1;
-        ers2_o = 1;
+        enable_o[RD]  = 1;
+        enable_o[RS1] = 1;
+        enable_o[RS2] = 1;
       end
       Ity: begin
-        erd_o = 1;
-        ers1_o = 1;
-        alusel2_o = 1;
+        enable_o[RD]  = 1;
+        enable_o[RS1] = 1;
       end
       R64ty: begin
-        erd_o  = 1;
-        ers1_o = 1;
-        ers2_o = 1;
+        enable_o[RD]  = 1;
+        enable_o[RS1] = 1;
+        enable_o[RS2] = 1;
       end
       I64ty: begin
-        erd_o = 1;
-        ers1_o = 1;
-        alusel2_o = 1;
+        enable_o[RD]  = 1;
+        enable_o[RS1] = 1;
       end
       Load: begin
-        erd_o = 1;
-        ers1_o = 1;
-        alusel2_o = 1;  // calculate address
-        ememread_o = 1;
+        enable_o[RD] = 1;
+        enable_o[RS1] = 1;
+        // calculate address
+        enable_o[MREAD] = 1;
 
         if (funct3 == 3'b111) decode_error[1] = 1;
 
       end
       Store: begin
-        ers2_o = 1;
-        ers1_o = 1;
-        alusel2_o = 1;  // calculate addresss
-        ememwrite_o = 1;
+        enable_o[RS1] = 1;
+        enable_o[RS2] = 1;
+        // calculate addresss
+        enable_o[MWRITE] = 1;
 
         if (funct3 == 3'b111) decode_error[1] = 1;
 
       end
       Branch: begin
-        ers1_o   = 1;
-        ers2_o   = 1;
-        branch_o = 1;
+        enable_o[RS1] = 1;
+        enable_o[RS2] = 1;
+        specinst_o = BR;
       end
       Jal: begin
-        erd_o = 1;
-        jal_o = 1;
+        enable_o[RD] = 1;
+        specinst_o   = JAL;
       end
       Jalr: begin
-        erd_o = 1;
-        ers1_o = 1;
-        alusel2_o = 1;  // calculate address
-        jalr_o = 1;
+        enable_o[RD] = 1;
+        enable_o[RS1] = 1;
+        // calculate address
+        specinst_o = JALR;
       end
       Auipc: begin
-        erd_o = 1;
-        alusel2_o = 1;
-        auipc_o = 1;
+        enable_o[RD] = 1;
+
+        specinst_o   = AUIPC;
       end
       Lui: begin
-        erd_o = 1;
-        alusel2_o = 1;
-        // lui_o = 1;
+        enable_o[RD] = 1;
+
+        specinst_o   = LUI;
       end
       Env: begin
         env_exception_o[0] = funct12 == 12'b000000000000;
