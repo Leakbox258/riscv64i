@@ -1,15 +1,12 @@
 #include "common.h"
 #include "cpu.h"
 #include "debug.h"
+#include <cstdint>
 #include <cstdio>
 #include <readline/history.h>
 #include <readline/readline.h>
 #include <stdlib.h>
 #include <string.h>
-
-#ifndef PHYADDR_BEGIN
-#define PHYADDR_BEGIN 0x80000000
-#endif
 
 extern void isa_reg_display();
 extern paddr_t guest_to_host(vaddr_t);
@@ -78,7 +75,7 @@ static int cmd_info(char *args) {
   return 0;
 }
 
-static int cmd_x(char *args) {
+static int cmd_xm(char *args) {
   char *cnt_s = strtok(NULL, " ");
   char *expr_s = strtok(NULL, " ");
 
@@ -89,26 +86,66 @@ static int cmd_x(char *args) {
   paddr_t expr = strtol(expr_s, &nptr_expr, 16);
 
   if (nptr_cnt != cnt_s + strlen(cnt_s)) {
-    Log("Invalid number of cmd_x");
+    Log("Invalid number of cmd_xm");
     return 1;
   }
 
   if (nptr_expr != expr_s + strlen(expr_s)) {
-    Log("Invalid expr of cmd_x");
+    Log("Invalid expr of cmd_xm");
     return 2;
   }
 
   paddr_t addr = guest_to_host(expr);
 
-  if (addr < PHYADDR_BEGIN) {
-    Log("The input virtual address is not mapped.");
-    return 1;
+  if (addr % 8) {
+    Log("The input address is not align to an inst");
+    return 3;
   }
 
   for (int i = 0; i < cnt; ++i) {
     /// TODO: addr maybe acceed the limit of the neum address?
 
-    printf("0x%x ", (uint32_t)(addr));
+    printf("0x%08lx ", CPU_RAM[addr / 8]);
+
+    addr += 8; // skip a dword
+  }
+  printf("\n");
+
+  return 0;
+}
+
+static int cmd_xi(char *args) {
+  char *cnt_s = strtok(NULL, " ");
+  char *expr_s = strtok(NULL, " ");
+
+  char *nptr_cnt = NULL;
+  int cnt = strtol(cnt_s, &nptr_cnt, 10);
+
+  char *nptr_expr = NULL;
+  paddr_t expr = strtol(expr_s, &nptr_expr, 16);
+
+  if (nptr_cnt != cnt_s + strlen(cnt_s)) {
+    Log("Invalid number of cmd_xi");
+    return 1;
+  }
+
+  if (nptr_expr != expr_s + strlen(expr_s)) {
+    Log("Invalid expr of cmd_xi");
+    return 2;
+  }
+
+  paddr_t addr = guest_to_host(expr);
+
+  if (addr % 4) {
+    Log("The input address is not align to an inst");
+    return 3;
+  }
+
+  for (int i = 0; i < cnt; ++i) {
+    /// TODO: addr maybe acceed the limit of the neum address?
+
+    printf("%08x: %08x \n", (uint32_t)(addr + CPU_PHYADDR_BEGIN),
+           CPU_INSTS[addr / 4]);
 
     addr += 4; // skip a word
   }
@@ -129,7 +166,8 @@ static struct {
     /* TODO: Add more commands */
     {"si", "Step instruction", cmd_si},
     {"info", "Display infos", cmd_info},
-    {"x", "Scan memory", cmd_x},
+    {"xm", "Scan memory", cmd_xm},
+    {"xi", "Scan instruction", cmd_xi},
 };
 
 #define NR_CMD ARRLEN(cmd_table)

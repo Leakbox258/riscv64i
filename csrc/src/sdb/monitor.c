@@ -1,3 +1,4 @@
+#include "cpu.h"
 #include "debug.h"
 
 static void welcome() {
@@ -84,7 +85,7 @@ void init_monitor(int argc, char *argv[]) {
   /* Initialize the simple debugger. */
   init_sdb();
 
-  IFDEF(CONFIG_ITRACE, init_disasm());
+  cpu_reset(1);
 
   /* Display welcome message. */
   welcome();

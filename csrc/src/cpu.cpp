@@ -1,23 +1,4 @@
 #include "cpu.h"
-#include "VMonitor.h"
-#include "debug.h"
-#include "macro.h"
-
-#include "VMonitor_CPU.h"
-#include "VMonitor_CodeROM.h"
-#include "VMonitor_GPR.h"
-#include "VMonitor_Monitor.h"
-#include "VMonitor_PC.h"
-#include "VMonitor_RAM.h"
-#include "VMonitor___024root.h"
-
-extern VMonitor top;
-#define PHYADDR_BEGIN 0x80000000
-#define GPRs top.Monitor->Cpu->gpr->__PVT__gprs
-#define INSTS top.Monitor->Cpu->code->__PVT__rom_
-#define RAM top.Monitor->Cpu->ram->__PVT__ram_
-#define PC top.Monitor->Pc->__PVT__pc
-#define RAM_SIZE sizeof(VMonitor_RAM::__PVT__addr_i) * 8
 
 const char *regs[] = {"$0", "ra", "sp",  "gp",  "tp", "t0", "t1", "t2",
                       "s0", "s1", "a0",  "a1",  "a2", "a3", "a4", "a5",
@@ -49,14 +30,14 @@ void cpu_exec(int i) {
 
 paddr_t guest_to_host(vaddr_t vaddr) {
   /// TODO: mmu: vaddr_t -> paddr_t
-  return (paddr_t)(vaddr & ((1 << RAM_SIZE) - 1));
+  return (paddr_t)(vaddr & ((1ull << CPU_RAM_SIZE) - 1));
 }
 
 void isa_reg_display() {
-  printf("%3s: 0x%10lx |\n", "pc", PC);
+  printf("%3s: 0x%10lx |\n", "pc", CPU_PC);
 
   for (int i = 0; i < MUXDEF(CONFIG_RVE, 16, 32); ++i) {
-    printf("%3s: 0x%10lx", regs[i], GPRs[i]);
+    printf("%3s: 0x%10lx", regs[i], CPU_GPRs[i]);
 
     if (i % 4 == 3) {
       printf(" |\n");

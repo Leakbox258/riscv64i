@@ -1,7 +1,7 @@
 module CodeROM #(
     ADDR_WIDTH = 64,
     DATA_WIDTH = 32,
-    ROM_SIZE   = 12
+    ROM_SIZE   = 16
 ) (
     input [ADDR_WIDTH-1:0] addr_i,
     output logic [DATA_WIDTH-1:0] data_o,
