@@ -1,42 +1,35 @@
 #include "VMonitor.h"
 #include <verilated.h>
 
-typedef VMonitor TOP_NAME;
+VMonitor top;
 
-void nvboard_bind_all_pins(TOP_NAME* top);
+#ifdef NVBOARD
+void nvboard_bind_all_pins(VMonitor *top);
 void nvboard_init(int);
 void nvboard_update();
+void cpu_single_cycle();
+void cpu_reset(int);
+#else
+void init_monitor(int argc, char *argv[]);
+void engine_start();
+#endif
 
-static TOP_NAME top;
-
-static void single_cycle() {
-  top.clk_i = 0;
-  top.eval();
-  top.clk_i = 1;
-  top.eval();
-}
-
-static void reset(int n) {
-  top.rst_i = 1;
-  while (n-- > 0)
-    single_cycle();
-  top.rst_i = 0;
-}
-
-int main() {
+int main(int argc, char *argv[]) {
   setbuf(stdout, NULL);
   setbuf(stderr, NULL);
 
+#ifdef NVBOARD
   nvboard_bind_all_pins(&top);
   nvboard_init(0);
-
-  reset(10);
-
+  cpu_reset(10);
   while (1) {
     nvboard_update();
-    single_cycle();
-    // sleep(1);
+    cpu_single_cycle();
   }
+#else
+  init_monitor(argc, argv);
+  engine_start();
+#endif
 
   return 0;
 }

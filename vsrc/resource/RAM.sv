@@ -15,8 +15,8 @@ module RAM #(
             MEM_D = 3'b011, MEM_BU = 3'b100, MEM_HU = 3'b101 , MEM_WU = 3'b110;
   parameter Write = 0, Read = 1;
 
-
-  reg [DATA_WIDTH- 1 : 0] _ram[2**RAM_SIZE - 1:0];
+  /* verilator public_module */
+  reg [DATA_WIDTH- 1 : 0] ram_[2**RAM_SIZE - 1:0];
 
   function logic [DATA_WIDTH-1:0] sext_8([7:0] data);
     logic [DATA_WIDTH-1:0] data_sext;
@@ -61,25 +61,25 @@ module RAM #(
     if (ewr_i == Read) begin
       case (wid_i)
         MEM_B: begin
-          data_o = sext_8(_ram[addr_i][7:0]);
+          data_o = sext_8(ram_[addr_i][7:0]);
         end
         MEM_H: begin
-          data_o = sext_16(_ram[addr_i][15:0]);
+          data_o = sext_16(ram_[addr_i][15:0]);
         end
         MEM_W: begin
-          data_o = sext_32(_ram[addr_i][31:0]);
+          data_o = sext_32(ram_[addr_i][31:0]);
         end
         MEM_D: begin
-          data_o = _ram[addr_i];
+          data_o = ram_[addr_i];
         end
         MEM_BU: begin
-          data_o = zext_8(_ram[addr_i][7:0]);
+          data_o = zext_8(ram_[addr_i][7:0]);
         end
         MEM_HU: begin
-          data_o = zext_16(_ram[addr_i][15:0]);
+          data_o = zext_16(ram_[addr_i][15:0]);
         end
         MEM_WU: begin
-          data_o = zext_32(_ram[addr_i][31:0]);
+          data_o = zext_32(ram_[addr_i][31:0]);
         end
         default: ;
       endcase
@@ -91,16 +91,16 @@ module RAM #(
     if (ewr_i == Write) begin
       case (wid_i)
         MEM_B: begin
-          _ram[addr_i][7:0] <= data_i[7:0];
+          ram_[addr_i][7:0] <= data_i[7:0];
         end
         MEM_H: begin
-          _ram[addr_i][15:0] <= data_i[15:0];
+          ram_[addr_i][15:0] <= data_i[15:0];
         end
         MEM_W: begin
-          _ram[addr_i][31:0] <= data_i[31:0];
+          ram_[addr_i][31:0] <= data_i[31:0];
         end
         MEM_D: begin
-          _ram[addr_i] <= data_i;
+          ram_[addr_i] <= data_i;
         end
         default:  /* need something? */;
       endcase

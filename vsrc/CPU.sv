@@ -20,6 +20,7 @@ module CPU
   logic [INST_WIDTH-1:0] inst_if;
   logic [INST_WIDTH-1:0] data_i;
 
+  /* verilator public_module */
   CodeROM code (
       .addr_i(pc_i),
       .data_o(data_i),
@@ -84,6 +85,8 @@ module CPU
   );
 
   logic [DATA_WIDTH-1:0] GprReadRs1, GprReadRs2;
+
+  /* verilator public_module */
   GPR gpr (
       .clk  (clk_i),
       .rs1_i(id_regi[IDX_RS1]),  // ID
@@ -204,7 +207,8 @@ module CPU
   logic [RAM_SIZE-1:0] mem_addr_exmem;
   assign mem_addr_exmem = exmem_out.ALU_Result[RAM_SIZE-1:0];
 
-  RAM Ram (
+  /* verilator public_module */
+  RAM ram (
       .clk(clk_i),
       .addr_i(mem_addr_exmem),
       .ewr_i(exmem_out.Mem_REn ? 1'b0 : (exmem_out.Mem_WEn ? 1'b1 : 1'bz)),

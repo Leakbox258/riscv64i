@@ -11,11 +11,11 @@ module Display #(
 );
   reg [7:0] segs_combine[8];
 
-  parameter FetchError = 0, DecodeError = 1, MemAccessError = 2, UnknownBrtyError = 3;
-  // ECALL = 4,
-  // EBREAK = 5;
+  parameter FetchError = 0, DecodeError = 1;
+  // ECALL = 2,
+  // EBREAK = 3;
   parameter  /* RST = 0, */ NORMAL = 1, HALT = 2  /*, ERROR = 3 */;
-  parameter Anormaly = 3;
+  parameter Anormaly = 1;
   parameter   
             SEGNONE = ~(8'b00000000),
             SEGERROR = ~(8'b10010010),
@@ -67,10 +67,8 @@ module Display #(
       end
     end else begin
       /// Display Error
-      segs_combine[FetchError] = interrupts_i[FetchError] ? SEGERROR : SEGNONE;
+      segs_combine[FetchError]  = interrupts_i[FetchError] ? SEGERROR : SEGNONE;
       segs_combine[DecodeError] = interrupts_i[DecodeError] ? SEGERROR : SEGNONE;
-      segs_combine[MemAccessError] = interrupts_i[MemAccessError] ? SEGERROR : SEGNONE;
-      segs_combine[UnknownBrtyError] = interrupts_i[UnknownBrtyError] ? SEGERROR : SEGNONE;
 
       for (int i = Anormaly + 1; i < 8; i = i + 1) begin
         segs_combine[i] = SEGNONE;

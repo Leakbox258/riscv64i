@@ -8,13 +8,14 @@ module PC (
     output [63:0] pc_o
 );
 
-  reg [63:0] _pc;
+  /* verilator public_module */
+  logic [63:0] pc;
 
   always_ff @(posedge clk_i) begin
-    if (rst_i) _pc <= 64'h80000000;
-    else if (ewrite_i) _pc <= data_i;
+    if (rst_i) pc <= 64'h80000000;
+    else if (ewrite_i) pc <= data_i;
   end
 
-  assign pc_o = _pc;
+  assign pc_o = pc;
 
 endmodule

@@ -21,14 +21,13 @@ module Monitor #(
   parameter
   // FetchError = 0, 
   // DecodeError = 1,
-  // MemAccessError = 2,
-  // UnknownBrtyError = 3,
-  ECALL = 4, EBREAK = 5;
-  parameter Anormaly = 3;
+  ECALL = 2, EBREAK = 3;
+  parameter Anormaly = 1;
 
-  wire [3:0] interrupt;
-  wire [DATA_WIDTH-1:0] pc, new_pc;
+  logic [3:0] interrupt;
+  logic [DATA_WIDTH-1:0] pc, new_pc;
 
+  /* verilator public_module */
   PC Pc (
       .clk_i(clk_i),
       .ewrite_i(state == NORMAL),
@@ -37,7 +36,8 @@ module Monitor #(
       .pc_o(pc)
   );
 
-  CPU #(DATA_WIDTH) Cpu (
+  /* verilator public_module */
+  CPU Cpu (
       .clk_i(clk_i),
       .rst_i(rst_i),
       .pc_i(pc),
