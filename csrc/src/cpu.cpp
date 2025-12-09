@@ -17,13 +17,14 @@ void cpu_single_cycle() {
 
 void cpu_reset(int n) {
   top.rst_i = 1;
-  while (n-- > 0)
+  while (n-- > 0) {
     cpu_single_cycle();
+  }
   top.rst_i = 0;
 }
 
-void cpu_exec(int i) {
-  for (int ii = 0; ii < i; ++ii) {
+void cpu_exec(unsigned i) {
+  for (unsigned ii = 0; ii < i; ++ii) {
     cpu_single_cycle();
   }
 }

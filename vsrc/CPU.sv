@@ -12,7 +12,7 @@ module CPU
 );
   parameter FetchError = 0, DecodeError = 1, ECALL = 2, EBREAK = 3;
   logic [3:0] exception;
-
+  logic [31:0] cycle;
 
   // =======================================================================
   // 1. Instruction Fetch
@@ -33,8 +33,18 @@ module CPU
   );
 
   IFID_Pipe_t ifid_in, ifid_out;
-  assign ifid_in.PC   = pc_i;
+  assign ifid_in.PC = pc_i;
   assign ifid_in.Inst = inst_if;
+  assign ifid_in.enable = ifid_in_en;
+
+  logic ifid_in_en;
+  always_ff @(posedge clk_i) begin
+    if (rst_i) begin
+      ifid_in_en <= '0;
+    end else begin
+      ifid_in_en <= '1;
+    end
+  end
 
   IFID ifid_reg (
       .clk_i  (clk_i),
@@ -54,6 +64,7 @@ module CPU
 
   assign idex_in.PC = ifid_out.PC;
   assign idex_in.RegIdx = id_regi;
+  assign idex_in.enable = ifid_out.enable;
 
   always_comb begin
     case (Forward_RD1)
@@ -191,6 +202,8 @@ module CPU
   assign exmem_in.Mem_REn = idex_out.Enable[IDX_MREAD];
   assign exmem_in.Mem_WEn = idex_out.Enable[IDX_MWRITE];
   assign exmem_in.Detail = idex_out.Detail;
+  assign exmem_in.enable = idex_out.enable;
+
   logic [DATA_WIDTH-1:0] memdata_mem;
 
   EXMEM exmem_reg (
@@ -228,6 +241,7 @@ module CPU
   assign memwb_in.RD_Addr = exmem_out.RegIdx[IDX_RD];
   assign memwb_in.Reg_WEn = exmem_out.Reg_WEn;
   assign memwb_in.WB_Data = memdata_mem;
+  assign memwb_in.enable  = exmem_out.enable;
 
   MEMWB memwb_reg (
       .clk_i (clk_i),
@@ -285,11 +299,18 @@ module CPU
       .exception(exception),
       .pc(exmem_in.PC),
       .pcn(exmem_in.PC_Next),
+      .enable(exmem_in.enable),
 
       .flush_id(flush_id),
       .flush_if(flush_if),
       .prediction_failed(prediction_failed)
   );
+
+  /// Display
+  always_ff @(posedge clk_i) begin
+    $strobe("Verilator: En: %d Predict Pc 0x%h, Pc 0x%h", exmem_in.enable, exmem_in.PC + 4,
+            exmem_in.PC_Next);
+  end
 
   // =======================================================================
   // Update PC
@@ -297,14 +318,32 @@ module CPU
   logic prediction_failed;
 
   always_comb begin
-    if (stall) begin
-      new_pc_o = pc_i;
-    end else if (prediction_failed) begin
-      new_pc_o = exmem_in.PC_Next;
+    logic [DATA_WIDTH-1:0] next_pc;
+
+    if (prediction_failed) begin
+      next_pc = exmem_in.PC_Next;
+      $strobe("Verilator: Cycle %0d, Branch Prediction Failed", cycle);
+    end else if (stall) begin
+      next_pc = pc_i;
+      $strobe("Verilator: Cycle %0d, Pipeline Stall", cycle);
     end else begin
-      new_pc_o = pc_i + 4;
+      next_pc = pc_i + 4;
     end
 
+    new_pc_o = next_pc;
+
+  end
+
+  /// Display
+  always_ff @(posedge clk_i) begin
+    if (rst_i) begin
+      cycle <= '0;
+    end else begin
+      cycle <= cycle + 1;
+    end
+
+    $strobe("Verilator: Cycle %0d, IFID_EN: %d, IDEX_EN: %d, EXMEM_EN: %d, MEMWB_IN_EN: %d", cycle,
+            ifid_in.enable, idex_in.enable, exmem_in.enable, memwb_in.enable,);
   end
 
 endmodule

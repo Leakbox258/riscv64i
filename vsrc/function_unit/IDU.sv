@@ -46,7 +46,7 @@ module IDU #(
   parameter RD = 0, RS1 = 1, RS2 = 2, MREAD = 3, MWRITE = 4;
 
   /* Enum Specific Inst */
-  parameter BR = 0, JAL = 1, JALR = 2, AUIPC = 3, LUI = 4;
+  parameter BR = 0, JAL = 1, JALR = 2, AUIPC = 3, LUI = 4, NO_SPEC = 5;
 
   /* Enum Branch type */
   parameter B_EQ = 3'b000, B_NE = 3'b001, B_LT = 3'b100, B_GE = 3'b101, B_LTU = 3'b110, B_GEU = 3'b111;
@@ -77,7 +77,7 @@ module IDU #(
     /// set default value
     enable_o = 5'b0;
 
-    specinst_o = 3'b0;
+    specinst_o = NO_SPEC;
 
     decode_error[1:0] = 2'b0;
     env_exception_o = 2'b00;

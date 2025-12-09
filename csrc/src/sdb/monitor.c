@@ -1,3 +1,19 @@
+/***************************************************************************************
+ * Copyright (c) 2014-2024 Zihao Yu, Nanjing University
+ *
+ * Modified by YuFei Zhang in 2025 for riscv64-g ISA and verilator simulation
+ * NEMU is licensed under Mulan PSL v2.
+ * You can use this software according to the terms and conditions of the Mulan
+ *PSL v2. You may obtain a copy of Mulan PSL v2 at:
+ *          http://license.coscl.org.cn/MulanPSL2
+ *
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY
+ *KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ *NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+ *
+ * See the Mulan PSL v2 for more details.
+ ***************************************************************************************/
+
 #include "cpu.h"
 #include "debug.h"
 
@@ -85,10 +101,12 @@ void init_monitor(int argc, char *argv[]) {
   /* Initialize the simple debugger. */
   init_sdb();
 
-  cpu_reset(1);
-
   /* Display welcome message. */
   welcome();
 }
 
-void engine_start() { sdb_mainloop(); }
+void engine_start() {
+  cpu_reset(1);
+
+  sdb_mainloop();
+}

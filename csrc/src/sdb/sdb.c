@@ -1,3 +1,19 @@
+/***************************************************************************************
+ * Copyright (c) 2014-2024 Zihao Yu, Nanjing University
+ *
+ * Modified by YuFei Zhang in 2025 for riscv64-g ISA and verilator simulation
+ * NEMU is licensed under Mulan PSL v2.
+ * You can use this software according to the terms and conditions of the Mulan
+ *PSL v2. You may obtain a copy of Mulan PSL v2 at:
+ *          http://license.coscl.org.cn/MulanPSL2
+ *
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY
+ *KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ *NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+ *
+ * See the Mulan PSL v2 for more details.
+ ***************************************************************************************/
+
 #include "common.h"
 #include "cpu.h"
 #include "debug.h"
@@ -45,12 +61,17 @@ static int cmd_help(char *args);
 static int cmd_si(char *args) {
   char *arg = strtok(NULL, " ");
 
-  char *nptr = NULL;
-  int i = strtol(arg, &nptr, 10);
+  int i;
+  if (arg) {
+    char *nptr = NULL;
+    i = strtol(arg, &nptr, 10);
 
-  if (nptr != arg + strlen(arg)) {
-    Log("Invalid forward number for debugger cmd_si");
-    return 1;
+    if (nptr != arg + strlen(arg)) {
+      Log("Invalid forward number for debugger cmd_si");
+      return 1;
+    }
+  } else {
+    i = 1;
   }
 
   cpu_exec(i);

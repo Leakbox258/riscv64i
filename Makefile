@@ -78,7 +78,7 @@ nvrun: $(NVBIN) testcase
 
 run: $(BIN) testcase
 	@clear
-	@$^ -b
+	@$(BIN) --batch
 
 debug: $(BIN)
 	@clear

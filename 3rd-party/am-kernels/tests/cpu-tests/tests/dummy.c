@@ -1,4 +1,1 @@
-int main() {
-  int a = 1, b = 2, c = 3;
-  return a + b * c;
-}
+int main() { return 0; }

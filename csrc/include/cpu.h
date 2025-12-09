@@ -25,6 +25,6 @@ void cpu_single_cycle();
 
 void cpu_reset(int n);
 
-void cpu_exec(int i);
+void cpu_exec(unsigned i);
 
 #endif
