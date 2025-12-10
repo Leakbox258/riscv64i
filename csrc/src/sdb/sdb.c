@@ -17,6 +17,7 @@
 #include "common.h"
 #include "cpu.h"
 #include "debug.h"
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <readline/history.h>
@@ -26,11 +27,17 @@
 
 extern void isa_reg_display();
 extern paddr_t guest_to_host(vaddr_t);
+extern IFID_t ifid_in, ifid_out;
+extern IDEX_t idex_in, idex_out;
+extern EXMEM_t exmem_in, exmem_out;
+extern MEMWB_IN_t memwb_in;
+extern MEMWB_OUT_t memwb_out;
 
 static int is_batch_mode = false; // is_debug_mode = true
 
 void init_regex();
 void init_wp_pool();
+extern const char *regs[];
 
 static char *rl_gets() {
   static char *line_read = NULL;
@@ -139,6 +146,11 @@ static int cmd_xi(char *args) {
   char *cnt_s = strtok(NULL, " ");
   char *expr_s = strtok(NULL, " ");
 
+  if (!cnt_s || !expr_s) {
+    Log("Invalid input of cmd_xi");
+    return 4;
+  }
+
   char *nptr_cnt = NULL;
   int cnt = strtol(cnt_s, &nptr_cnt, 10);
 
@@ -175,6 +187,43 @@ static int cmd_xi(char *args) {
   return 0;
 }
 
+static int cmd_pipe_impl(char *reg);
+
+static int cmd_pipe(char *args) {
+  char *reg = strtok(NULL, " ");
+
+  if (!reg) {
+    Log("Invalid pipeline register of cmd_pipe");
+    return 1;
+  }
+
+  if (cmd_pipe_impl(reg)) {
+    return 2;
+  }
+
+  return 0;
+}
+
+static int cmd_pipea(char *args) {
+  char arg0[] = "ifid-in";
+  cmd_pipe_impl(arg0);
+  char arg1[] = "ifid-out";
+  cmd_pipe_impl(arg1);
+  char arg2[] = "idex-in";
+  cmd_pipe_impl(arg2);
+  char arg3[] = "idex-out";
+  cmd_pipe_impl(arg3);
+  char arg4[] = "exmem-in";
+  cmd_pipe_impl(arg4);
+  char arg5[] = "exmem-out";
+  cmd_pipe_impl(arg5);
+  char arg6[] = "memwb-in";
+  cmd_pipe_impl(arg6);
+  char arg7[] = "memwb-out";
+  cmd_pipe_impl(arg7);
+  return 0;
+}
+
 static struct {
   const char *name;
   const char *description;
@@ -189,7 +238,8 @@ static struct {
     {"info", "Display infos", cmd_info},
     {"xm", "Scan memory", cmd_xm},
     {"xi", "Scan instruction", cmd_xi},
-};
+    {"pipe", "print status infos of pipeline registers", cmd_pipe},
+    {"pipea", "print status infos of all pipeline registers", cmd_pipea}};
 
 #define NR_CMD ARRLEN(cmd_table)
 
@@ -268,4 +318,74 @@ void init_sdb() {
 
   /* Initialize the watchpoint pool. */
   init_wp_pool();
+}
+
+int cmd_pipe_impl(char *reg) {
+  if (!strcmp(reg, "ifid_in") || !strcmp(reg, "ifid-in")) {
+    FLUSH_IFID_IN;
+
+    printf("ifid_in: \n\tPC: 0x%08x |\tInst: %08x", (uint32_t)ifid_in.PC,
+           ifid_in.Inst);
+  } else if (!strcmp(reg, "ifid_out") || !strcmp(reg, "ifid-out")) {
+    FLUSH_IFID_OUT;
+
+    printf("ifid_out: \n\tPC: 0x%08x |\tInst: %08x", (uint32_t)ifid_in.PC,
+           ifid_in.Inst);
+  } else if (!strcmp(reg, "idex_in") || !strcmp(reg, "idex-in")) {
+    FLUSH_IDEX_IN;
+
+    printf(
+        "idex_in: \n\tPC: 0x%08x |\tRd: %s |\tRs1: %s 0x%lx |\tRs2: %s 0x%lx |",
+        (uint32_t)idex_in.PC, regs[idex_in.RegIdx[2]], regs[idex_in.RegIdx[0]],
+        idex_in.RegData[0], regs[idex_in.RegIdx[1]], idex_in.RegData[1]);
+  } else if (!strcmp(reg, "idex_out") || !strcmp(reg, "idex-out")) {
+    FLUSH_IDEX_OUT;
+
+    printf("idex_out: \n\tPC: 0x%08x |\tRd: %s |\tRs1: %s 0x%lx |\tRs2: %s "
+           "0x%lx |",
+           (uint32_t)idex_out.PC, regs[idex_out.RegIdx[2]],
+           regs[idex_out.RegIdx[0]], idex_out.RegData[0],
+           regs[idex_out.RegIdx[1]], idex_out.RegData[1]);
+  } else if (!strcmp(reg, "exmem_in") || !strcmp(reg, "exmem-in")) {
+    FLUSH_EXMEM_IN;
+
+    printf("exmem_in: \n\tPC: 0x%08x |\tPC_Next: 0x%08x |\tRs1: %s|\tRs2: "
+           "%s |\tRegWrite: %s |\tMemRead: %s |\tMemWrite: %s |",
+           (uint32_t)exmem_in.PC, (uint32_t)exmem_in.PC_Next,
+           regs[exmem_in.RegIdx[0]], regs[exmem_in.RegIdx[1]],
+           exmem_in.Reg_WEn ? "true" : "false",
+           exmem_in.Mem_REn ? "true" : "false",
+           exmem_in.Mem_WEn ? "true" : "false");
+  } else if (!strcmp(reg, "exmem_out") || !strcmp(reg, "exmem-out")) {
+    FLUSH_EXMEM_OUT;
+
+    printf("exmem_out: \n\tPC: 0x%08x |\tPC_Next: 0x%08x |\tRs1: %s |\tRs2: "
+           "%s |\tRegWrite: %s |\tMemRead: %s |\tMemWrite: %s |",
+           (uint32_t)exmem_out.PC, (uint32_t)exmem_out.PC_Next,
+           regs[exmem_out.RegIdx[0]], regs[exmem_out.RegIdx[1]],
+           exmem_out.Reg_WEn ? "true" : "false",
+           exmem_out.Mem_REn ? "true" : "false",
+           exmem_out.Mem_WEn ? "true" : "false");
+  } else if (!strcmp(reg, "memwb_in") || !strcmp(reg, "memwb-in")) {
+    FLUSH_MEMWB_IN;
+
+    printf("memwb_in: \n\tPC: 0x%08x |\tPC_Next: 0x%08x |\tRd: %s |\tRegWrite: "
+           "%s |",
+           (uint32_t)memwb_in.PC, (uint32_t)memwb_in.PC_Next,
+           regs[memwb_in.RD_Addr], memwb_in.Reg_WEn ? "true" : "false");
+  } else if (!strcmp(reg, "memwb_out") || !strcmp(reg, "memwb-out")) {
+    FLUSH_MEMWB_OUT;
+
+    printf("memwb_out: \n\tPC: 0x%08x |\tPC_Next: 0x%08x |\tRd: %s|\tRegWrite: "
+           "%s |\tRegData: 0x%lx",
+           (uint32_t)memwb_out.PC, (uint32_t)memwb_out.PC_Next,
+           regs[memwb_out.RD_Addr], memwb_out.Reg_WEn ? "true" : "false",
+           memwb_out.WB_Data);
+  } else {
+    Log("Invalid pipeline register of cmd_pipe");
+    return 1;
+  }
+
+  printf("\n");
+  return 0;
 }

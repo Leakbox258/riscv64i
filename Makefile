@@ -5,6 +5,7 @@ INC_PATH ?= ./csrc/include
 VERILATOR = verilator
 VERILATOR_CFLAGS += -MMD --build -cc \
 					-O3 --x-assign fast \
+					--public-params		\
 					--x-initial fast --noassert
 
 VERILATOR_INCLUDE += -I./vsrc/pkg
@@ -80,9 +81,9 @@ run: $(BIN) testcase
 	@clear
 	@$(BIN) --batch
 
-debug: $(BIN)
+debug: $(BIN) testcase
 	@clear
-	@$^
+	@$(BIN)
 
 clean:
 	rm -rf $(BUILD_DIR)

@@ -18,8 +18,6 @@ package pipeline_pkg;
 
   // Forwarding
   parameter NO_FWD = 0;
-  parameter MEM_TO_RD = 1;
-  parameter ALUC_TO_RD = 2;
   parameter MEM_TO_ALU = 1;
   parameter WB_TO_ALU = 2;
 
@@ -29,7 +27,7 @@ package pipeline_pkg;
     logic [DATA_WIDTH-1:0] PC;
     logic [INST_WIDTH-1:0] Inst;
     logic enable;
-  } IFID_Pipe_t;
+  } IFID_Pipe_t  /* verilator public */;
 
   // 2. ID -> EX
   typedef struct packed {
@@ -42,10 +40,9 @@ package pipeline_pkg;
     logic [2:0]                 SpecInst;
     logic [2:0]                 Detail;
     logic                       enable;
-  } IDEX_Pipe_t;
+  } IDEX_Pipe_t  /* verilator public */;
 
   // 3. EX -> MEM
-  parameter EXMEM_SLICE_BEGIN = 277;
   typedef struct packed {
     logic [DATA_WIDTH-1:0]   PC;
     logic [DATA_WIDTH-1:0]   PC_Next;
@@ -56,35 +53,29 @@ package pipeline_pkg;
     logic                    Mem_REn;
     logic                    Mem_WEn;
     logic [2:0]              Detail;
-
-    logic [1:0][DATA_WIDTH-1:0] RegData;
-    logic enable;
-  } EXMEM_Pipe_In_t;
-
-  typedef struct packed {
-    logic [DATA_WIDTH-1:0]   PC;
-    logic [DATA_WIDTH-1:0]   PC_Next;
-    logic [DATA_WIDTH-1:0]   ALU_Result;
-    logic [DATA_WIDTH-1:0]   Store_Data;
-    logic [2:0][RF_SIZE-1:0] RegIdx;
-    logic                    Reg_WEn;
-    logic                    Mem_REn;
-    logic                    Mem_WEn;
-    logic [2:0]              Detail;
-
-    logic enable;
-  } EXMEM_Pipe_Out_t;
-
+    logic                    enable;
+  } EXMEM_Pipe_t  /* verilator public */;
 
   // 4. MEM -> WB
   typedef struct packed {
     logic [DATA_WIDTH-1:0] PC;
     logic [DATA_WIDTH-1:0] PC_Next;
-    logic [DATA_WIDTH-1:0] WB_Data;
     logic [RF_SIZE-1:0]    RD_Addr;
     logic                  Reg_WEn;
     logic                  enable;
-  } MEMWB_Pipe_t;
+  } MEMWB_Pipe_In_t  /* verilator public */;
+
+  typedef struct packed {
+    logic [DATA_WIDTH-1:0] PC;
+    logic [DATA_WIDTH-1:0] PC_Next;
+    logic [RF_SIZE-1:0]    RD_Addr;
+    logic                  Reg_WEn;
+    logic                  enable;
+
+    logic                  Mem_REn;
+    logic [DATA_WIDTH-1:0] WB_Data;
+  } MEMWB_Pipe_Out_t  /* verilator public */;
+
 
 endpackage
 

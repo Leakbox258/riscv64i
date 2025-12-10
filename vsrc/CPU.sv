@@ -60,27 +60,11 @@ module CPU
   // 2. ID
   // =======================================================================
   IDEX_Pipe_t idex_in, idex_out;
-  logic [2:0][RF_SIZE-1:0] id_regi;
 
   assign idex_in.PC = ifid_out.PC;
-  assign idex_in.RegIdx = id_regi;
   assign idex_in.enable = ifid_out.enable;
-
-  always_comb begin
-    case (Forward_RD1)
-      MEM_TO_RD: idex_in.RegData[IDX_RS1] = exmem_out.ALU_Result;
-      ALUC_TO_RD: idex_in.RegData[IDX_RS1] = alu_C;
-      default: idex_in.RegData[IDX_RS1] = GprReadRs1;
-    endcase
-  end
-
-  always_comb begin
-    case (Forward_RD2)
-      MEM_TO_RD: idex_in.RegData[IDX_RS2] = exmem_out.ALU_Result;
-      ALUC_TO_RD: idex_in.RegData[IDX_RS2] = alu_C;
-      default: idex_in.RegData[IDX_RS2] = GprReadRs2;
-    endcase
-  end
+  assign idex_in.RegData[IDX_RS1] = GprReadRs1;
+  assign idex_in.RegData[IDX_RS2] = GprReadRs2;
 
   IDU idu (
       .inst_i(ifid_out.Inst),
@@ -88,7 +72,7 @@ module CPU
       .enable_o  (idex_in.Enable),
       .aluop_o   (idex_in.ALUOp),
       .specinst_o(idex_in.SpecInst),
-      .regi_o    (id_regi),
+      .regi_o    (idex_in.RegIdx),
       .detail_o  (idex_in.Detail),
 
       .decode_error_o (exception[DecodeError]),
@@ -100,16 +84,25 @@ module CPU
   /* verilator public_module */
   GPR gpr (
       .clk  (clk_i),
-      .rs1_i(id_regi[IDX_RS1]),  // ID
-      .rs2_i(id_regi[IDX_RS2]),  // ID
+      .rs1_i(idex_in.RegIdx[IDX_RS1]),  // ID
+      .rs2_i(idex_in.RegIdx[IDX_RS2]),  // ID
 
       .rd_i(memwb_out.RD_Addr),  // WB
       .write_enable_i(memwb_out.Reg_WEn),  // WB
-      .data_i(memwb_out.WB_Data),  // WB
+      .data_i(WB_Data),  // WB
 
       .rs1_data_o(GprReadRs1),
       .rs2_data_o(GprReadRs2)
   );
+
+  /// Display
+  always_ff @(posedge clk_i) begin
+    $strobe(
+        "Verilator: Cycle %0d, GPR read x%0d and x%0d, GPR write x%0d, WB_Data 0x%h, RegData 0x%h, RegEn %0d, MemREn %0d, Memdata 0x%h",
+        cycle, idex_in.RegIdx[IDX_RS1], idex_in.RegIdx[IDX_RS2], memwb_out.RD_Addr, WB_Data,
+        memwb_out.WB_Data, memwb_out.Reg_WEn, memwb_out.Mem_REn, memdata_mem);
+  end
+
 
   IMMGen immgen (
       .inst_i(ifid_out.Inst),
@@ -140,16 +133,25 @@ module CPU
   always_comb begin
     case (Forward_A)
       MEM_TO_ALU: alu_A = exmem_out.ALU_Result;
-      WB_TO_ALU: alu_A = memwb_in.WB_Data;
+      WB_TO_ALU: alu_A = memwb_out.WB_Data;
       default: alu_A = ExMuxAluA;
     endcase
   end
 
   always_comb begin
     case (Forward_B)
-      MEM_TO_ALU: alu_B = exmem_out.ALU_Result;
-      WB_TO_ALU: alu_B = memwb_in.WB_Data;
-      default: alu_B = ExMuxAluB;
+      MEM_TO_ALU: begin
+        alu_B = exmem_out.ALU_Result;
+        exmem_in.Store_Data = exmem_out.ALU_Result;
+      end
+      WB_TO_ALU: begin
+        alu_B = memwb_out.WB_Data;
+        exmem_in.Store_Data = memwb_out.WB_Data;
+      end
+      default: begin
+        alu_B = ExMuxAluB;
+        exmem_in.Store_Data = idex_out.RegData[IDX_RS2];
+      end
     endcase
   end
 
@@ -189,22 +191,18 @@ module CPU
   // =======================================================================
   // EX/MEM
   // =======================================================================
-  EXMEM_Pipe_In_t  exmem_in;
-  EXMEM_Pipe_Out_t exmem_out;
+  EXMEM_Pipe_t exmem_in;
+  EXMEM_Pipe_t exmem_out;
 
   assign exmem_in.PC = idex_out.PC;
   assign exmem_in.PC_Next = pcn_ex;
   assign exmem_in.ALU_Result = alu_C;
-  assign exmem_in.Store_Data = idex_out.RegData[IDX_RS2];
-  assign exmem_in.RegData = idex_out.RegData[IDX_RS2:IDX_RS1];
   assign exmem_in.RegIdx = idex_out.RegIdx;
   assign exmem_in.Reg_WEn = idex_out.Enable[IDX_RD];
   assign exmem_in.Mem_REn = idex_out.Enable[IDX_MREAD];
   assign exmem_in.Mem_WEn = idex_out.Enable[IDX_MWRITE];
   assign exmem_in.Detail = idex_out.Detail;
   assign exmem_in.enable = idex_out.enable;
-
-  logic [DATA_WIDTH-1:0] memdata_mem;
 
   EXMEM exmem_reg (
       .clk_i(clk_i),
@@ -219,6 +217,7 @@ module CPU
   // =======================================================================
   logic [RAM_SIZE-1:0] mem_addr_exmem;
   assign mem_addr_exmem = exmem_out.ALU_Result[RAM_SIZE-1:0];
+  wire [DATA_WIDTH-1:0] memdata_mem;
 
   /* verilator public_module */
   RAM ram (
@@ -234,47 +233,55 @@ module CPU
   // =======================================================================
   // MEM/WB
   // =======================================================================
-  MEMWB_Pipe_t memwb_in, memwb_out;
+  MEMWB_Pipe_In_t  memwb_in;
+  MEMWB_Pipe_Out_t memwb_out;
 
   assign memwb_in.PC      = exmem_out.PC;
   assign memwb_in.PC_Next = exmem_out.PC_Next;
   assign memwb_in.RD_Addr = exmem_out.RegIdx[IDX_RD];
   assign memwb_in.Reg_WEn = exmem_out.Reg_WEn;
-  assign memwb_in.WB_Data = memdata_mem;
   assign memwb_in.enable  = exmem_out.enable;
 
   MEMWB memwb_reg (
-      .clk_i (clk_i),
-      .rst_i (rst_i),
-      .data_i(memwb_in),
-      .data_o(memwb_out)
+      .clk_i  (clk_i),
+      .rst_i  (rst_i),
+      .WB_Data(exmem_out.ALU_Result),
+      .Mem_REn(exmem_out.Mem_REn),
+      .data_i (memwb_in),
+      .data_o (memwb_out)
   );
+
+  // =======================================================================
+  // WB
+  // =======================================================================
+
+  logic [DATA_WIDTH-1:0] WB_Data;
+  assign WB_Data = memwb_out.Mem_REn ? memdata_mem : memwb_out.WB_Data;
 
   // =======================================================================
   // Exceptions
   // =======================================================================
   always_ff @(posedge clk_i) begin
     if (rst_i) exceptions_o <= 4'b0;
-    else exceptions_o <= exception;
+    else begin
+      exceptions_o[FetchError]   <= exception[FetchError] & ifid_in.enable;
+      exceptions_o[DecodeError]  <= exception[DecodeError] & idex_in.enable;
+      exceptions_o[EBREAK:ECALL] <= exception[EBREAK:ECALL] & {2{exmem_in.enable}};
+    end
   end
 
   // =======================================================================
   // Forward
   // ======================================================================= 
-
-  logic [1:0] Forward_RD1, Forward_RD2;
   logic [1:0] Forward_A, Forward_B;
 
   Forward Forward (
-      .idex_in  (idex_in),    // ID
       .idex_out (idex_out),   // EX
       .exmem_out(exmem_out),  // MEM
       .memwb_out(memwb_out),  // WB
 
-      .Forward_RD1(Forward_RD1),
-      .Forward_RD2(Forward_RD2),
-      .Forward_A  (Forward_A),
-      .Forward_B  (Forward_B)
+      .Forward_A(Forward_A),
+      .Forward_B(Forward_B)
   );
 
 
@@ -284,8 +291,8 @@ module CPU
   logic stall;
 
   Stall Stall (
-      .exmem_out(exmem_out),
-      .idex_out (idex_out),
+      .idex_in (idex_in),
+      .idex_out(idex_out),
 
       .stall(stall)
   );
@@ -322,10 +329,10 @@ module CPU
 
     if (prediction_failed) begin
       next_pc = exmem_in.PC_Next;
-      $strobe("Verilator: Cycle %0d, Branch Prediction Failed", cycle);
+      $strobe("Verilator: Cycle %0d, Branch Prediction Failed, Next_PC: 0x%x", cycle, next_pc);
     end else if (stall) begin
       next_pc = pc_i;
-      $strobe("Verilator: Cycle %0d, Pipeline Stall", cycle);
+      $strobe("Verilator: Cycle %0d, Pipeline Stall, Next_PC: 0x%x", cycle, next_pc);
     end else begin
       next_pc = pc_i + 4;
     end

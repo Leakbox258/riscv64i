@@ -79,6 +79,7 @@ static int parse_args(int argc, char *argv[]) {
 void init_sdb();
 void init_log(const char *log_file);
 void init_rand();
+void init_cpu();
 
 void init_monitor(int argc, char *argv[]) {
   /* Perform some global initialization. */
@@ -106,7 +107,7 @@ void init_monitor(int argc, char *argv[]) {
 }
 
 void engine_start() {
-  cpu_reset(1);
+  init_cpu();
 
   sdb_mainloop();
 }

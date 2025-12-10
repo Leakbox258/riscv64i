@@ -5,6 +5,12 @@ const char *regs[] = {"$0", "ra", "sp",  "gp",  "tp", "t0", "t1", "t2",
                       "a6", "a7", "s2",  "s3",  "s4", "s5", "s6", "s7",
                       "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"};
 
+IFID_t ifid_in, ifid_out;
+IDEX_t idex_in, idex_out;
+EXMEM_t exmem_in, exmem_out;
+MEMWB_IN_t memwb_in;
+MEMWB_OUT_t memwb_out;
+
 static uint64_t g_timer = 0; // unit: us
 uint64_t g_nr_guest_inst = 0;
 
@@ -13,6 +19,19 @@ void cpu_single_cycle() {
   top.eval();
   top.clk_i = 1;
   top.eval();
+}
+
+void init_cpu() {
+  FLUSH_IDEX_IN;
+  FLUSH_IDEX_OUT;
+  FLUSH_EXMEM_IN;
+  FLUSH_EXMEM_OUT;
+  FLUSH_IFID_IN;
+  FLUSH_IFID_OUT;
+  FLUSH_MEMWB_IN;
+  FLUSH_MEMWB_OUT;
+
+  cpu_reset(1);
 }
 
 void cpu_reset(int n) {

@@ -43,7 +43,7 @@ module IDU #(
 			ALU_SLLW = 13, ALU_SRLW = 14, ALU_SRAW = 15;
 
   /* Enable params */
-  parameter RD = 0, RS1 = 1, RS2 = 2, MREAD = 3, MWRITE = 4;
+  parameter RS1 = 0, RS2 = 1, RD = 2, MREAD = 3, MWRITE = 4;
 
   /* Enum Specific Inst */
   parameter BR = 0, JAL = 1, JALR = 2, AUIPC = 3, LUI = 4, NO_SPEC = 5;
@@ -222,9 +222,5 @@ module IDU #(
       default: aluop_o = ALU_ADD;
     endcase
   end
-
-  //   initial begin
-  //     $monitor("curInst: %h", inst_i);
-  //   end
 
 endmodule
