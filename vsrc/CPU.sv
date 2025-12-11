@@ -8,10 +8,10 @@ module CPU
     input logic [DATA_WIDTH-1:0] pc_i,
 
     output logic [DATA_WIDTH-1:0] new_pc_o,
-    output logic [3:0] exceptions_o
+    output logic [7:0] exceptions_o
 );
-  parameter FetchError = 0, DecodeError = 1, ECALL = 2, EBREAK = 3;
-  logic [3:0] exception;
+  parameter FetchError = 0, DecodeError = 1, MemAccessError = 2, ECALL = 3, EBREAK = 4;
+  logic [7:0] exception;
   logic [31:0] cycle;
 
   // =======================================================================
@@ -98,7 +98,7 @@ module CPU
   /// Display
   always_ff @(posedge clk_i) begin
     $strobe(
-        "Verilator: Cycle %0d, GPR read x%0d and x%0d, GPR write x%0d, WB_Data 0x%h, RegData 0x%h, RegEn %0d, MemREn %0d, Memdata 0x%h",
+        "GPR: Cycle %0d, GPR read x%0d and x%0d, GPR write x%0d, WB_Data 0x%h, ALUData 0x%h, RegEn %0d, MemREn %0d, Memdata 0x%h",
         cycle, idex_in.RegIdx[IDX_RS1], idex_in.RegIdx[IDX_RS2], memwb_out.RD_Addr, WB_Data,
         memwb_out.WB_Data, memwb_out.Reg_WEn, memwb_out.Mem_REn, memdata_mem);
   end
@@ -178,6 +178,11 @@ module CPU
       .C_o(alu_C)
   );
 
+  /// Display
+  always_ff @(posedge clk_i) begin
+    $strobe("EXU: A: 0x%0h, B: 0x%0h, C: 0x%0h", alu_A, alu_B, alu_C);
+  end
+
   PCN Pcn (
       .specinst_i(idex_out.SpecInst),
       .detail_i(idex_out.Detail),
@@ -223,12 +228,20 @@ module CPU
   RAM ram (
       .clk(clk_i),
       .addr_i(mem_addr_exmem),
-      .ewr_i(exmem_out.Mem_REn ? 1'b0 : (exmem_out.Mem_WEn ? 1'b1 : 1'bz)),
+      .ewr_i(exmem_out.Mem_REn ? 1'b1 : (exmem_out.Mem_WEn ? 1'b0 : 1'bz)),
       .data_i(exmem_out.Store_Data),
       .wid_i(exmem_out.Detail),
 
-      .data_o(memdata_mem)
+      .data_o(memdata_mem),
+      .unalign_access(exception[MemAccessError])
   );
+
+  /// display
+  always_ff @(posedge clk_i) begin
+    $strobe("RAM: Cycle %0d, Ram%0s, Addr: 0x%0h, WData: 0x%0h", cycle,
+            exmem_out.Mem_REn ? " read" : (exmem_out.Mem_WEn ? " write" : " non access"),
+            exmem_out.ALU_Result, exmem_out.Store_Data);
+  end
 
   // =======================================================================
   // MEM/WB
@@ -245,7 +258,7 @@ module CPU
   MEMWB memwb_reg (
       .clk_i  (clk_i),
       .rst_i  (rst_i),
-      .WB_Data(exmem_out.ALU_Result),
+      .WB_Data(exmem_out.ALU_Result),  // read data from syn RAM will be ready next cycle
       .Mem_REn(exmem_out.Mem_REn),
       .data_i (memwb_in),
       .data_o (memwb_out)
@@ -262,10 +275,11 @@ module CPU
   // Exceptions
   // =======================================================================
   always_ff @(posedge clk_i) begin
-    if (rst_i) exceptions_o <= 4'b0;
+    if (rst_i) exceptions_o <= '0;
     else begin
-      exceptions_o[FetchError]   <= exception[FetchError] & ifid_in.enable;
-      exceptions_o[DecodeError]  <= exception[DecodeError] & idex_in.enable;
+      exceptions_o[FetchError] <= exception[FetchError] & ifid_in.enable;
+      exceptions_o[DecodeError] <= exception[DecodeError] & idex_in.enable;
+      exceptions_o[MemAccessError] <= exception[MemAccessError] & memwb_in.enable;
       exceptions_o[EBREAK:ECALL] <= exception[EBREAK:ECALL] & {2{exmem_in.enable}};
     end
   end
@@ -291,8 +305,8 @@ module CPU
   logic stall;
 
   Stall Stall (
-      .idex_in (idex_in),
-      .idex_out(idex_out),
+      .idex_in (idex_in),  // ID
+      .idex_out(idex_out), // EX
 
       .stall(stall)
   );
@@ -315,7 +329,7 @@ module CPU
 
   /// Display
   always_ff @(posedge clk_i) begin
-    $strobe("Verilator: En: %d Predict Pc 0x%h, Pc 0x%h", exmem_in.enable, exmem_in.PC + 4,
+    $strobe("EXU: En: %d Predict Pc 0x%h, Pc 0x%h", exmem_in.enable, exmem_in.PC + 4,
             exmem_in.PC_Next);
   end
 
@@ -329,10 +343,10 @@ module CPU
 
     if (prediction_failed) begin
       next_pc = exmem_in.PC_Next;
-      $strobe("Verilator: Cycle %0d, Branch Prediction Failed, Next_PC: 0x%x", cycle, next_pc);
+      $strobe("EXU: Cycle %0d, Branch Prediction Failed, Next_PC: 0x%x", cycle, next_pc);
     end else if (stall) begin
       next_pc = pc_i;
-      $strobe("Verilator: Cycle %0d, Pipeline Stall, Next_PC: 0x%x", cycle, next_pc);
+      $strobe("IDU & EXU: Cycle %0d, Pipeline Stall, Next_PC: 0x%x", cycle, next_pc);
     end else begin
       next_pc = pc_i + 4;
     end

@@ -31,7 +31,7 @@ module PC (
 
   /// display
   always_ff @(posedge clk_i) begin
-    $strobe("Verilator: Cycle %0d, Current PC: 0x%h, Next PC: 0x%h, WriteEn %d", cycle, pc, data_i,
+    $strobe("PC: Cycle %0d, Current PC: 0x%h, Next PC: 0x%h, WriteEn %d", cycle, pc, data_i,
             ewrite_i);
   end
 

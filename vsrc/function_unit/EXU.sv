@@ -18,7 +18,7 @@ module EXU #(
 );
 
   /* Enum Specific Inst */
-  parameter JAL = 1, JALR = 2, AUIPC = 3, LUI = 4;
+  parameter JAL = 1, JALR = 2, AUIPC = 3, LUI = 4, STORE = 5;
 
   always_comb begin
 
@@ -30,8 +30,10 @@ module EXU #(
     else alu_A_o = 0;
 
     /// drive alu_B_o
-    if (ers2_i) alu_B_o = rs2_i;
-    else if (specinst_i == LUI) alu_B_o = 0;
+    if (ers2_i) begin
+      if (specinst_i == STORE) alu_B_o = imme_i;
+      else alu_B_o = rs2_i;
+    end else if (specinst_i == LUI) alu_B_o = 0;
     else if (specinst_i == JAL) alu_B_o = 4;  // PC + 4
     else if (specinst_i == JALR) alu_B_o = 4;  // PC + 4
     else alu_B_o = imme_i;

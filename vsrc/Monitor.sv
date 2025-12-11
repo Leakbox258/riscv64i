@@ -21,10 +21,10 @@ module Monitor #(
   parameter
   // FetchError = 0, 
   // DecodeError = 1,
-  ECALL = 2, EBREAK = 3;
-  parameter Anormaly = 1;
+  ECALL = 3, EBREAK = 4;
+  parameter Anormaly = 2;
 
-  logic [3:0] interrupt;
+  logic [7:0] interrupt;
   logic [DATA_WIDTH-1:0] pc, new_pc;
 
   /* verilator public_module */

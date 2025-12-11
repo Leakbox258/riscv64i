@@ -107,6 +107,11 @@ static int cmd_xm(char *args) {
   char *cnt_s = strtok(NULL, " ");
   char *expr_s = strtok(NULL, " ");
 
+  if (!cnt_s || !expr_s) {
+    Log("Invalid args for cmd_xm");
+    return 4;
+  }
+
   char *nptr_cnt = NULL;
   int cnt = strtol(cnt_s, &nptr_cnt, 10);
 
@@ -125,18 +130,18 @@ static int cmd_xm(char *args) {
 
   paddr_t addr = guest_to_host(expr);
 
-  if (addr % 8) {
-    Log("The input address is not align to an inst");
+  if (addr % 4) {
+    Log("The input address is not align to a word");
     return 3;
   }
 
   for (int i = 0; i < cnt; ++i) {
-    /// TODO: addr maybe acceed the limit of the neum address?
 
-    printf("0x%08lx ", CPU_RAM[addr / 8]);
+    printf("0x%08x ", *((uint32_t *)&CPU_RAM[addr]));
 
-    addr += 8; // skip a dword
+    addr += 4; // skip a word
   }
+
   printf("\n");
 
   return 0;

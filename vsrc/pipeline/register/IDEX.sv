@@ -16,9 +16,9 @@ module IDEX
   always_ff @(posedge clk_i) begin
     if (rst_i) begin
       data_o <= '0;
-    end else if (flush_i) begin
-      data_o <= '0;
-    end else if (!stall_i) begin
+    end else if (flush_i || stall_i) begin
+      data_o <= '0;  // when stall, clear the flags to avoid block the pipeline after ID
+    end else begin
       data_o <= data_i;
     end
   end

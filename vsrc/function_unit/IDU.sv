@@ -46,7 +46,7 @@ module IDU #(
   parameter RS1 = 0, RS2 = 1, RD = 2, MREAD = 3, MWRITE = 4;
 
   /* Enum Specific Inst */
-  parameter BR = 0, JAL = 1, JALR = 2, AUIPC = 3, LUI = 4, NO_SPEC = 5;
+  parameter BR = 0, JAL = 1, JALR = 2, AUIPC = 3, LUI = 4, STORE = 5, LOAD = 6, NO_SPEC = 7;
 
   /* Enum Branch type */
   parameter B_EQ = 3'b000, B_NE = 3'b001, B_LT = 3'b100, B_GE = 3'b101, B_LTU = 3'b110, B_GEU = 3'b111;
@@ -109,6 +109,7 @@ module IDU #(
 
         if (funct3 == 3'b111) decode_error[1] = 1;
 
+        specinst_o = LOAD;
       end
       Store: begin
         enable_o[RS1] = 1;
@@ -118,6 +119,7 @@ module IDU #(
 
         if (funct3 == 3'b111) decode_error[1] = 1;
 
+        specinst_o = STORE;
       end
       Branch: begin
         enable_o[RS1] = 1;
@@ -145,8 +147,8 @@ module IDU #(
         specinst_o   = LUI;
       end
       Env: begin
-        env_exception_o[0] = funct12 == 12'b000000000000;
-        env_exception_o[1] = funct12 == 12'b000000000001;
+        env_exception_o[0] = funct12 == '0;
+        env_exception_o[1] = funct12 == '1;
       end
       default: decode_error[0] = 1;
     endcase
@@ -186,9 +188,9 @@ module IDU #(
 
       R64ty: begin
         case (funct3)
-          3'b000:  aluop_o = (funct7 == 7'b0000000) ? ALU_ADDW : ALU_SUBW;
+          3'b000:  aluop_o = (funct7 == '0) ? ALU_ADDW : ALU_SUBW;
           3'b001:  aluop_o = ALU_SLLW;
-          3'b101:  aluop_o = (funct7 == 7'b0000000) ? ALU_SRLW : ALU_SRAW;
+          3'b101:  aluop_o = (funct7 == '0) ? ALU_SRLW : ALU_SRAW;
           default: aluop_o = ALU_ADD;
         endcase
       end
@@ -197,7 +199,7 @@ module IDU #(
         case (funct3)
           3'b000:  aluop_o = ALU_ADDW;
           3'b001:  aluop_o = ALU_SLLW;
-          3'b101:  aluop_o = (funct7 == 7'b0000000) ? ALU_SRLW : ALU_SRAW;
+          3'b101:  aluop_o = (funct7 == '0) ? ALU_SRLW : ALU_SRAW;
           default: aluop_o = ALU_ADD;
         endcase
       end

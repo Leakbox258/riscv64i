@@ -3,10 +3,11 @@
 module Flush
   import pipeline_pkg::*;
 #(
-    FetchError  = 0,
-    DecodeError = 1
+    FetchError = 0,
+    DecodeError = 1,
+    MemAccessError = 2
 ) (
-    input [3:0] exception,
+    input [7:0] exception,
     input [DATA_WIDTH-1:0] pc,
     input [DATA_WIDTH-1:0] pcn,
     input enable,
@@ -38,6 +39,13 @@ module Flush
         flush_id = '1;
       end
     end
+
+    // if (enable2 ...)
+    //   if (exception[MemAccessError]) begin
+    //     flush_if = '1;
+    //     flush_id = '1;
+    //     /// TODO: flush ex mem...
+    //   end
   end
 
 endmodule
