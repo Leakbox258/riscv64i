@@ -34,7 +34,7 @@ Makefile.%: $(AM_KERNELS_CPU_TESTS_DIR)/tests/%.c latest
 	-@rm -f Makefile.$*
 
 Makefile_Debug.%: $(AM_KERNELS_CPU_TESTS_DIR)/tests/%.c latest
-	@/bin/echo -e "NAME = $*\nSRCS = $<\ninclude ${ABSTRACT_MACHINE_DIR}/Makefile" > $@
+	@/bin/echo -e "NAME = $*\nSRCS = $<\nCFLAGS+=-I${AM_KERNELS_CPU_TESTS_DIR}/include\ninclude ${ABSTRACT_MACHINE_DIR}/Makefile" > $@
 	@make -s -f $@ ARCH=$(ARCH) BUILD_DIR=$(BUILD_DIR) $(MAKECMDGOALS)
 	-@rm -f Makefile_Debug.$*
 

@@ -30,6 +30,13 @@ module IMMGen #(
     return sexted;
   endfunction
 
+  function automatic logic [DATA_WIDTH-1:0] sext_imme_13(input logic [12:1] value);
+    logic [DATA_WIDTH-1:0] sexted;
+    sexted = {{(DATA_WIDTH - 13) {value[12]}}, value, 1'b0};
+    return sexted;
+  endfunction
+
+
   function automatic logic [DATA_WIDTH-1:0] sext_imme_32(input logic [31:0] value);
     logic [DATA_WIDTH-1:0] sexted;
     sexted = {{(DATA_WIDTH - 32) {value[31]}}, value};
@@ -51,7 +58,7 @@ module IMMGen #(
         imme_o = sext_imme_12({inst_i[31:25], inst_i[11:7]});
       end
       Branch: begin
-        imme_o = sext_imme_12({inst_i[31], inst_i[11], inst_i[30:25], inst_i[11:8]});
+        imme_o = sext_imme_13({inst_i[31], inst_i[7], inst_i[30:25], inst_i[11:8]});
       end
       Jalr: begin
         imme_o = sext_imme_12(inst_i[31:20]);
