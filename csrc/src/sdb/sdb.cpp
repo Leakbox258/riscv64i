@@ -17,6 +17,8 @@
 #include "common.h"
 #include "cpu.h"
 #include "debug.h"
+#include "macro.h"
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -24,6 +26,7 @@
 #include <readline/readline.h>
 #include <stdlib.h>
 #include <string.h>
+#include <vector>
 
 extern void isa_reg_display();
 extern paddr_t guest_to_host(vaddr_t);
@@ -229,6 +232,38 @@ static int cmd_pipea(char *args) {
   return 0;
 }
 
+extern std::vector<paddr_t> cpu_break_points;
+
+static int cmd_b(char *args) {
+  char *expr_s = strtok(NULL, " ");
+
+  if (!expr_s) {
+    Log("Invalid PC for cmd_b");
+    return 1;
+  }
+
+  char *nptr_expr = NULL;
+  paddr_t expr = strtol(expr_s, &nptr_expr, 16);
+
+  if (nptr_expr != expr_s + strlen(expr_s)) {
+    Log("Invalid expr of cmd_b");
+    return 2;
+  }
+
+  if (std::find_if(cpu_break_points.begin(), cpu_break_points.end(),
+                   [&](const auto &bp) { return bp == expr; }) !=
+      cpu_break_points.end()) {
+    Log("Already has a break point at 0x%08lx", expr);
+    return 3;
+  }
+
+  cpu_break_points.emplace_back(expr);
+
+  Log("BreakPoint at 0x%08lx", expr);
+
+  return 0;
+}
+
 static struct {
   const char *name;
   const char *description;
@@ -244,7 +279,8 @@ static struct {
     {"xm", "Scan memory", cmd_xm},
     {"xi", "Scan instruction", cmd_xi},
     {"pipe", "print status infos of pipeline registers", cmd_pipe},
-    {"pipea", "print status infos of all pipeline registers", cmd_pipea}};
+    {"pipea", "print status infos of all pipeline registers", cmd_pipea},
+    {"b", "insert a software break point at some location", cmd_b}};
 
 #define NR_CMD ARRLEN(cmd_table)
 

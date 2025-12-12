@@ -1,4 +1,7 @@
 #include "cpu.h"
+#include "common.h"
+#include <algorithm>
+#include <vector>
 
 const char *regs[] = {"$0", "ra", "sp",  "gp",  "tp", "t0", "t1", "t2",
                       "s0", "s1", "a0",  "a1",  "a2", "a3", "a4", "a5",
@@ -10,6 +13,8 @@ IDEX_t idex_in, idex_out;
 EXMEM_t exmem_in, exmem_out;
 MEMWB_IN_t memwb_in;
 MEMWB_OUT_t memwb_out;
+
+std::vector<paddr_t> cpu_break_points;
 
 static uint64_t g_timer = 0; // unit: us
 uint64_t g_nr_guest_inst = 0;
@@ -45,6 +50,13 @@ void cpu_reset(int n) {
 void cpu_exec(unsigned i) {
   for (unsigned ii = 0; ii < i; ++ii) {
     cpu_single_cycle();
+
+    if (std::find_if(cpu_break_points.begin(), cpu_break_points.end(),
+                     [&](const auto &bp) { return bp == (paddr_t)CPU_PC; }) !=
+        cpu_break_points.end()) {
+      Log("monitor: Hit BreakPoint at 0x%08lx", (paddr_t)CPU_PC);
+      return;
+    }
   }
 }
 
