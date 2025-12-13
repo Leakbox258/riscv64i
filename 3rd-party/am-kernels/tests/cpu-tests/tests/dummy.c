@@ -1,6 +1,7 @@
 int main() {
-  int a[0x10];
-  a[0] = 0xffeeddcc;
-  a[0xf] = a[0];
+  int i = 0;
+  while (i < 4) {
+    ++i;
+  }
   return 0;
 }

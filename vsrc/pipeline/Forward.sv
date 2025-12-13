@@ -8,7 +8,8 @@ module Forward
     input MEMWB_Pipe_Out_t memwb_out,
 
     output logic [1:0] Forward_A,
-    output logic [1:0] Forward_B
+    output logic [1:0] Forward_B,
+    output logic [1:0] Forward_Store
 );
 
   always_comb begin
@@ -35,4 +36,15 @@ module Forward
 
   end
 
+
+  always_comb begin
+    if (idex_out.Enable[IDX_MWRITE]) begin
+      if (exmem_out.Reg_WEn && exmem_out.RegIdx[IDX_RD] == idex_out.RegIdx[IDX_RS2]) begin
+        Forward_Store = MEM_TO_ALU;
+      end else if (memwb_out.Reg_WEn && memwb_out.RD_Addr == idex_out.RegIdx[IDX_RS2]) begin
+        Forward_Store = WB_TO_ALU;
+      end else Forward_Store = NO_FWD;
+    end else Forward_Store = NO_FWD;
+
+  end
 endmodule

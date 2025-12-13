@@ -24,7 +24,7 @@ module Monitor #(
   ECALL = 3, EBREAK = 4;
   parameter Anormaly = 2;
 
-  logic [7:0] interrupt;
+  logic [7:0] exception;
   logic [DATA_WIDTH-1:0] pc, new_pc;
 
   /* verilator public_module */
@@ -42,7 +42,7 @@ module Monitor #(
       .rst_i(rst_i),
       .pc_i(pc),
       .new_pc_o(new_pc),
-      .exceptions_o(interrupt)
+      .exceptions_o(exception)
   );
 
   wire [7:0] segs[7:0];
@@ -51,7 +51,7 @@ module Monitor #(
       .rst_i(rst_i),
       .pc_i(pc),
       .nstate_i(nstate),
-      .interrupts_i(interrupt),
+      .interrupts_i(exception),
       .segs_reg(segs)
   );
 
@@ -70,17 +70,23 @@ module Monitor #(
   reg [2:0] state, nstate;
 
   always_comb begin
-    if (interrupt[Anormaly:0] != 0) begin
+    if (exception[Anormaly:0] != '0) begin
       nstate = ERROR;
-    end else if (interrupt[ECALL]) begin
+    end else if (exception[ECALL]) begin
       /// TODO: handle traps
       nstate = HALT;
-    end else if (interrupt[EBREAK]) begin
+    end else if (exception[EBREAK]) begin
       nstate = HALT;
     end else begin
       nstate = NORMAL;
     end
   end
+
+  /// Display
+  always_ff @(posedge clk_i) begin
+    $strobe("Verilator: Exception code: %08b", exception);
+  end
+
 
   always_ff @(posedge clk_i) begin
     if (rst_i) begin

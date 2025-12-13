@@ -98,8 +98,8 @@ module CPU
   /// Display
   always_ff @(posedge clk_i) begin
     $strobe(
-        "GPR: Cycle %0d, GPR read x%0d and x%0d, GPR write x%0d, WB_Data 0x%h, ALUData 0x%h, RegEn %0d, MemREn %0d, Memdata 0x%h",
-        cycle, idex_in.RegIdx[IDX_RS1], idex_in.RegIdx[IDX_RS2], memwb_out.RD_Addr, WB_Data,
+        "GPR: Cycle %0d, GPR read x%0d and x%0d, GPR write x%0d, ALUData 0x%h, RegEn %0d, MemREn %0d, Memdata 0x%h",
+        cycle, idex_in.RegIdx[IDX_RS1], idex_in.RegIdx[IDX_RS2], memwb_out.RD_Addr,
         memwb_out.WB_Data, memwb_out.Reg_WEn, memwb_out.Mem_REn, memdata_mem);
   end
 
@@ -133,7 +133,7 @@ module CPU
   always_comb begin
     case (Forward_A)
       MEM_TO_ALU: alu_A = exmem_out.ALU_Result;
-      WB_TO_ALU: alu_A = memwb_out.WB_Data;
+      WB_TO_ALU: alu_A = WB_Data;
       default: alu_A = ExMuxAluA;
     endcase
   end
@@ -141,17 +141,23 @@ module CPU
   always_comb begin
     case (Forward_B)
       MEM_TO_ALU: begin
-        alu_B = exmem_out.ALU_Result;
-        exmem_in.Store_Data = exmem_out.ALU_Result;
+        if (Forward_Store != MEM_TO_ALU) alu_B = exmem_out.ALU_Result;
+        else alu_B = ExMuxAluB;
       end
       WB_TO_ALU: begin
-        alu_B = memwb_out.WB_Data;
-        exmem_in.Store_Data = memwb_out.WB_Data;
+        if (Forward_Store != WB_TO_ALU) alu_B = WB_Data;
+        else alu_B = ExMuxAluB;
       end
-      default: begin
-        alu_B = ExMuxAluB;
-        exmem_in.Store_Data = idex_out.RegData[IDX_RS2];
-      end
+      default: alu_B = ExMuxAluB;
+    endcase
+  end
+
+
+  always_comb begin
+    case (Forward_Store)
+      MEM_TO_ALU: exmem_in.Store_Data = exmem_out.ALU_Result;
+      WB_TO_ALU: exmem_in.Store_Data = WB_Data;
+      default: exmem_in.Store_Data = idex_out.RegData[IDX_RS2];
     endcase
   end
 
@@ -180,7 +186,7 @@ module CPU
 
   /// Display
   always_ff @(posedge clk_i) begin
-    $strobe("EXU: A: 0x%0h, B: 0x%0h, C: 0x%0h", alu_A, alu_B, alu_C);
+    $strobe("ALU: A: 0x%0h, B: 0x%0h, C: 0x%0h", alu_A, alu_B, alu_C);
   end
 
   PCN Pcn (
@@ -279,7 +285,7 @@ module CPU
     else begin
       exceptions_o[FetchError] <= exception[FetchError] & ifid_in.enable;
       exceptions_o[DecodeError] <= exception[DecodeError] & idex_in.enable;
-      exceptions_o[MemAccessError] <= exception[MemAccessError] & memwb_in.enable;
+      exceptions_o[MemAccessError] <= exception[MemAccessError] & memwb_in.enable & (exmem_out.Mem_WEn || exmem_out.Mem_REn);
       exceptions_o[EBREAK:ECALL] <= exception[EBREAK:ECALL] & {2{exmem_in.enable}};
     end
   end
@@ -287,7 +293,7 @@ module CPU
   // =======================================================================
   // Forward
   // ======================================================================= 
-  logic [1:0] Forward_A, Forward_B;
+  logic [1:0] Forward_A, Forward_B, Forward_Store;
 
   Forward Forward (
       .idex_out (idex_out),   // EX
@@ -295,7 +301,8 @@ module CPU
       .memwb_out(memwb_out),  // WB
 
       .Forward_A(Forward_A),
-      .Forward_B(Forward_B)
+      .Forward_B(Forward_B),
+      .Forward_Store(Forward_Store)
   );
 
 
@@ -329,7 +336,7 @@ module CPU
 
   /// Display
   always_ff @(posedge clk_i) begin
-    $strobe("EXU: En: %d Predict Pc 0x%h, Pc 0x%h", exmem_in.enable, exmem_in.PC + 4,
+    $strobe("EXU: En: %d Predict Pc 0x%h, real Pc Next 0x%h", exmem_in.enable, exmem_in.PC + 4,
             exmem_in.PC_Next);
   end
 
