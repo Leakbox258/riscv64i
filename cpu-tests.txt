@@ -27,9 +27,9 @@ shift
 shuixianhua
 string
 sub-longlong
-sum
+sum					P
 switch
 to-lower-case
 unalign
 wanshu
-dummy
+dummy				P

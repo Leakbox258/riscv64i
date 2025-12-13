@@ -1,7 +1,7 @@
 #include "cpu.h"
 #include "common.h"
+#include "debug.h"
 #include <algorithm>
-#include <vector>
 
 const char *regs[] = {"$0", "ra", "sp",  "gp",  "tp", "t0", "t1", "t2",
                       "s0", "s1", "a0",  "a1",  "a2", "a3", "a4", "a5",
@@ -14,7 +14,8 @@ EXMEM_t exmem_in, exmem_out;
 MEMWB_IN_t memwb_in;
 MEMWB_OUT_t memwb_out;
 
-std::vector<paddr_t> cpu_break_points;
+std::set<paddr_t> cpu_break_points;
+std::set<paddr_t> cpu_watch_points;
 
 static uint64_t g_timer = 0; // unit: us
 uint64_t g_nr_guest_inst = 0;
@@ -47,15 +48,36 @@ void cpu_reset(int n) {
   top.rst_i = 0;
 }
 
+static int memwid(int);
+
 void cpu_exec(unsigned i) {
   for (unsigned ii = 0; ii < i; ++ii) {
     cpu_single_cycle();
 
-    if (std::find_if(cpu_break_points.begin(), cpu_break_points.end(),
-                     [&](const auto &bp) { return bp == (paddr_t)CPU_PC; }) !=
-        cpu_break_points.end()) {
+    if (cpu_break_points.find((paddr_t)CPU_PC) != cpu_break_points.end()) {
+
       Log("monitor: Hit BreakPoint at 0x%08lx", (paddr_t)CPU_PC);
       return;
+    }
+
+    if (!cpu_watch_points.empty()) {
+      FLUSH_EXMEM_OUT;
+    }
+
+    if (std::find_if(cpu_watch_points.begin(), cpu_watch_points.end(),
+                     [&](const auto &wp) {
+                       return wp >= (paddr_t)exmem_out.ALU_Result &&
+                              wp <= (paddr_t)(exmem_out.ALU_Result +
+                                              memwid(exmem_out.Detail));
+                     }) != cpu_watch_points.end()) {
+
+      if (memwid(exmem_out.Detail) != -1 &&
+          (exmem_out.Mem_WEn || exmem_out.Mem_REn)) {
+
+        Log("monitor: Hit WatchPoint on 0x%08lx",
+            (paddr_t)exmem_out.ALU_Result);
+        return;
+      }
     }
   }
 }
@@ -90,6 +112,24 @@ static void statistic() {
   else
     Log("Finish running in less than 1 us and can not calculate the simulation "
         "frequency");
+}
+
+static int memwid(int detail) {
+  switch (detail) {
+  case 0: // B
+  case 4: // BU
+    return 1;
+  case 1: // H
+  case 5: // HU
+    return 2;
+  case 2: // W
+  case 6: // WU
+    return 4;
+  case 3: // D
+    return 8;
+  default:
+    return -1; // MemWEn unavalible
+  }
 }
 
 void assert_fail_msg() {

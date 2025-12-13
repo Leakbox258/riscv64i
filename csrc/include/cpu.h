@@ -15,6 +15,7 @@
 
 extern VMonitor top;
 #define CPU_PHYADDR_BEGIN 0x80000000
+#define CPU top.Monitor->Cpu
 #define CPU_GPRs top.Monitor->Cpu->gpr->__PVT__gprs
 #define CPU_INSTS top.Monitor->Cpu->code->__PVT__rom_
 #define CPU_RAM top.Monitor->Cpu->ram->__PVT__ram_

@@ -186,7 +186,10 @@ module CPU
 
   /// Display
   always_ff @(posedge clk_i) begin
-    $strobe("ALU: A: 0x%0h, B: 0x%0h, C: 0x%0h", alu_A, alu_B, alu_C);
+    $strobe(
+        "ALU: A: 0x%0h, B: 0x%0h, C: 0x%0h, Rs1: 0x%0h, Rs2: 0x%0h, Imm: 0x%0h, ForwardFromMem: %s, ForwardFromWB: %s",
+        alu_A, alu_B, alu_C, idex_out.RegData[IDX_RS1], idex_out.RegData[IDX_RS2], idex_out.Imm,
+        Forward_B == MEM_TO_ALU ? "true" : "false", Forward_B == WB_TO_ALU ? " true" : "false");
   end
 
   PCN Pcn (

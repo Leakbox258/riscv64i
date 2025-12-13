@@ -22,6 +22,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <readline/history.h>
 #include <readline/readline.h>
 #include <stdlib.h>
@@ -100,7 +101,8 @@ static int cmd_info(char *args) {
   if (!strncmp(arg, "r", 1)) {
     isa_reg_display();
   } else {
-    TODO(); // no return
+    Log("cmd_info support 'r' to dump current registers");
+    return 2;
   }
 
   return 0;
@@ -232,7 +234,7 @@ static int cmd_pipea(char *args) {
   return 0;
 }
 
-extern std::vector<paddr_t> cpu_break_points;
+extern std::set<paddr_t> cpu_break_points;
 
 static int cmd_b(char *args) {
   char *expr_s = strtok(NULL, " ");
@@ -250,16 +252,70 @@ static int cmd_b(char *args) {
     return 2;
   }
 
-  if (std::find_if(cpu_break_points.begin(), cpu_break_points.end(),
-                   [&](const auto &bp) { return bp == expr; }) !=
-      cpu_break_points.end()) {
+  if (cpu_break_points.find(expr) != cpu_break_points.end()) {
     Log("Already has a break point at 0x%08lx", expr);
     return 3;
   }
 
-  cpu_break_points.emplace_back(expr);
+  cpu_break_points.insert(expr);
 
   Log("BreakPoint at 0x%08lx", expr);
+
+  return 0;
+}
+
+extern std::set<paddr_t> cpu_watch_points;
+
+static int cmd_w_impl(paddr_t addr);
+
+static int cmd_w(char *args) {
+  char *expr_s = strtok(NULL, " ");
+
+  if (!expr_s) {
+    Log("Invalid PC for cmd_w");
+    return 1;
+  }
+
+  char *nptr_expr = NULL;
+  paddr_t expr = strtol(expr_s, &nptr_expr, 16);
+
+  if (nptr_expr != expr_s + strlen(expr_s)) {
+    Log("Invalid expr of cmd_w");
+    return 2;
+  }
+
+  cmd_w_impl(expr);
+  return 0;
+}
+
+static int cmd_wb(char *args) {
+  char *cnt_s = strtok(NULL, " ");
+  char *expr_s = strtok(NULL, " ");
+
+  if (!expr_s || !cnt_s) {
+    Log("Invalid arg for cmd_wb");
+    return 1;
+  }
+
+  char *nptr_cnt = NULL;
+  unsigned cnt = strtoul(cnt_s, &nptr_cnt, 10);
+
+  char *nptr_expr = NULL;
+  paddr_t expr = strtol(expr_s, &nptr_expr, 16);
+
+  if (nptr_expr != expr_s + strlen(expr_s)) {
+    Log("Invalid expr of cmd_wb");
+    return 2;
+  }
+
+  if (nptr_cnt != cnt_s + strlen(cnt_s)) {
+    Log("Invalid cnt of cmd_wb");
+    return 3;
+  }
+
+  for (unsigned i = 1; i < cnt; ++i) {
+    cmd_w_impl((paddr_t)expr + 4 * i);
+  }
 
   return 0;
 }
@@ -280,7 +336,9 @@ static struct {
     {"xi", "Scan instruction", cmd_xi},
     {"pipe", "print status infos of pipeline registers", cmd_pipe},
     {"pipea", "print status infos of all pipeline registers", cmd_pipea},
-    {"b", "insert a software break point at some location", cmd_b}};
+    {"b", "insert a software break point at some location", cmd_b},
+    {"w", "watch on somewhere of memory by software", cmd_w},
+    {"wb", "watch on a range of memory (stride = 4btye)", cmd_wb}};
 
 #define NR_CMD ARRLEN(cmd_table)
 
@@ -361,7 +419,7 @@ void init_sdb() {
   init_wp_pool();
 }
 
-int cmd_pipe_impl(char *reg) {
+static int cmd_pipe_impl(char *reg) {
   if (!strcmp(reg, "ifid_in") || !strcmp(reg, "ifid-in")) {
     FLUSH_IFID_IN;
 
@@ -428,5 +486,21 @@ int cmd_pipe_impl(char *reg) {
   }
 
   printf("\n");
+  return 0;
+}
+
+static int cmd_w_impl(paddr_t expr) {
+
+  if (std::find_if(cpu_watch_points.begin(), cpu_watch_points.end(),
+                   [&](const auto &bp) { return bp == expr; }) !=
+      cpu_watch_points.end()) {
+    Log("Already has a watch point(4 bytes) on 0x%08lx", expr);
+    return 3;
+  }
+
+  cpu_watch_points.insert(expr);
+
+  Log("WatchPoint on 0x%08lx", expr);
+
   return 0;
 }

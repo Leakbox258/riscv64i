@@ -33,7 +33,7 @@ module EXU #(
     if (ers2_i) begin
       if (specinst_i == STORE) alu_B_o = imme_i;
       else alu_B_o = rs2_i;
-    end else if (specinst_i == LUI) alu_B_o = 0;
+    end else if (specinst_i == LUI) alu_B_o = imme_i;
     else if (specinst_i == JAL) alu_B_o = 4;  // PC + 4
     else if (specinst_i == JALR) alu_B_o = 4;  // PC + 4
     else alu_B_o = imme_i;

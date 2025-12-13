@@ -74,10 +74,10 @@ module IMMGen #(
           };
       end
       Auipc: begin
-        imme_o = sext_imme_32({inst_i[31:12], 12'b0});
+        imme_o = sext_imme_32({inst_i[31:12], 12'b0});  // << 12
       end
       Lui: begin
-        imme_o = sext_imme_32({inst_i[31:12], 12'b0});
+        imme_o = sext_imme_32({inst_i[31:12], 12'b0});  // << 12
       end
       default: imme_o = 0;
     endcase
