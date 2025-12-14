@@ -76,7 +76,6 @@ package pipeline_pkg;
     logic [DATA_WIDTH-1:0] WB_Data;
   } MEMWB_Pipe_Out_t  /* verilator public */;
 
-
 endpackage
 
 `endif

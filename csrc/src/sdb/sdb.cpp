@@ -18,7 +18,6 @@
 #include "cpu.h"
 #include "debug.h"
 #include "macro.h"
-#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -27,7 +26,6 @@
 #include <readline/readline.h>
 #include <stdlib.h>
 #include <string.h>
-#include <vector>
 
 extern void isa_reg_display();
 extern paddr_t guest_to_host(vaddr_t);
@@ -491,9 +489,7 @@ static int cmd_pipe_impl(char *reg) {
 
 static int cmd_w_impl(paddr_t expr) {
 
-  if (std::find_if(cpu_watch_points.begin(), cpu_watch_points.end(),
-                   [&](const auto &bp) { return bp == expr; }) !=
-      cpu_watch_points.end()) {
+  if (cpu_watch_points.find(expr) != cpu_watch_points.end()) {
     Log("Already has a watch point(4 bytes) on 0x%08lx", expr);
     return 3;
   }

@@ -237,7 +237,8 @@ module CPU
   RAM ram (
       .clk(clk_i),
       .addr_i(mem_addr_exmem),
-      .ewr_i(exmem_out.Mem_REn ? 1'b1 : (exmem_out.Mem_WEn ? 1'b0 : 1'bz)),
+      .enwr_i(exmem_out.Mem_REn ? 1'b1 : 1'b0),
+      .En_i(exmem_out.Mem_REn | exmem_out.Mem_WEn),
       .data_i(exmem_out.Store_Data),
       .wid_i(exmem_out.Detail),
 
