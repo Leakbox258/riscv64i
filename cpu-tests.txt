@@ -1,14 +1,14 @@
-add-longlong
-add
-bit
-bubble-sort
+add-longlong		P
+add					P
+bit					P
+bubble-sort		
 crc32
 div
 fact
-fib
+fib					P
 goldbach
 hello-str
-if-else
+if-else				P
 leap-year
 load-store
 matrix-mul
@@ -23,13 +23,13 @@ prime
 quick-sort
 recursion
 select-sort
-shift
+shift				P
 shuixianhua
 string
-sub-longlong
+sub-longlong		P
 sum					P
-switch
-to-lower-case
+switch				P
+to-lower-case		P
 unalign
 wanshu
 dummy				P

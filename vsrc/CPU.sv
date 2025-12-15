@@ -19,12 +19,29 @@ module CPU
   // =======================================================================
   logic [INST_WIDTH-1:0] inst_if;
   logic [INST_WIDTH-1:0] data_i;
+  logic [RAM_SIZE-1:0] pc_addr_if = pc_i[RAM_SIZE-1:0];
+
+  //   /* verilator public_module */
+  //   CodeROM code (
+  //       .addr_i(pc_i),
+  //       .data_o(data_i),
+  //       .illegal_access_o(exception[FetchError])
+  //   );
 
   /* verilator public_module */
-  CodeROM code (
-      .addr_i(pc_i),
-      .data_o(data_i),
-      .illegal_access_o(exception[FetchError])
+  RAM ram (
+      .clk(clk_i),
+      .addr_i(mem_addr_exmem),
+      .pc_i(pc_addr_if),
+      .enwr_i(exmem_out.Mem_REn ? 1'b1 : 1'b0),
+      .En_i(exmem_out.Mem_REn | exmem_out.Mem_WEn),
+      .data_i(exmem_out.Store_Data),
+      .wid_i(exmem_out.Detail),
+
+      .data_o(memdata_mem),
+      .inst_o(data_i),
+      .illegal_access_o(exception[FetchError]),
+      .unalign_access(exception[MemAccessError])
   );
 
   IFU ifu (
@@ -233,19 +250,6 @@ module CPU
   assign mem_addr_exmem = exmem_out.ALU_Result[RAM_SIZE-1:0];
   wire [DATA_WIDTH-1:0] memdata_mem;
 
-  /* verilator public_module */
-  RAM ram (
-      .clk(clk_i),
-      .addr_i(mem_addr_exmem),
-      .enwr_i(exmem_out.Mem_REn ? 1'b1 : 1'b0),
-      .En_i(exmem_out.Mem_REn | exmem_out.Mem_WEn),
-      .data_i(exmem_out.Store_Data),
-      .wid_i(exmem_out.Detail),
-
-      .data_o(memdata_mem),
-      .unalign_access(exception[MemAccessError])
-  );
-
   /// display
   always_ff @(posedge clk_i) begin
     $strobe("RAM: Cycle %0d, Ram%0s, Addr: 0x%0h, WData: 0x%0h", cycle,
@@ -289,7 +293,7 @@ module CPU
     else begin
       exceptions_o[FetchError] <= exception[FetchError] & ifid_in.enable;
       exceptions_o[DecodeError] <= exception[DecodeError] & idex_in.enable;
-      exceptions_o[MemAccessError] <= exception[MemAccessError] & memwb_in.enable & (exmem_out.Mem_WEn || exmem_out.Mem_REn);
+      exceptions_o[MemAccessError] <= exception[MemAccessError] & exmem_out.enable & (exmem_out.Mem_WEn || exmem_out.Mem_REn);
       exceptions_o[EBREAK:ECALL] <= exception[EBREAK:ECALL] & {2{exmem_in.enable}};
     end
   end

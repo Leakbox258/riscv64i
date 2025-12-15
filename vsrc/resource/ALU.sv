@@ -1,6 +1,7 @@
-module ALU #(
-    DATA_WIDTH = 64
-) (
+`include "utils_pkg.sv"
+module ALU
+  import utils_pkg::*;
+(
     input [DATA_WIDTH-1:0] A_i,
     input [DATA_WIDTH-1:0] B_i,
     input [3:0] opcode_i,
@@ -48,10 +49,10 @@ module ALU #(
       end
       ALU_SRA: begin
         /// RV64I
-        C_o = $signed(A_i) >>> B_i[5:0];
+        C_o = sra_64(A_i, B_i[5:0]);
       end
       ALU_SLT: begin
-        C_o = {{DATA_WIDTH - 1{1'b0}}, $signed(A_i) < $signed(B_i)};
+        C_o = {{DATA_WIDTH - 1{1'b0}}, signed_slt(A_i, B_i)};
       end
       ALU_SLTU: begin
         C_o = {{DATA_WIDTH - 1{1'b0}}, A_i < B_i};
@@ -61,23 +62,23 @@ module ALU #(
       end
       ALU_ADDW: begin
         intermedia = A_i[DATA_WIDTH/2-1:0] + B_i[DATA_WIDTH/2-1:0];
-        C_o = {{DATA_WIDTH / 2{intermedia[DATA_WIDTH/2-1]}}, intermedia};
+        C_o = sext_32(intermedia);
       end
       ALU_SUBW: begin
         intermedia = A_i[DATA_WIDTH/2-1:0] + B_i[DATA_WIDTH/2-1:0];
-        C_o = {{DATA_WIDTH / 2{intermedia[DATA_WIDTH/2-1]}}, intermedia};
+        C_o = sext_32(intermedia);
       end
       ALU_SLLW: begin
         intermedia = A_i[DATA_WIDTH/2-1:0] << B_i[4:0];
-        C_o = {{DATA_WIDTH / 2{intermedia[DATA_WIDTH/2-1]}}, intermedia};
+        C_o = sext_32(intermedia);
       end
       ALU_SRLW: begin
         intermedia = A_i[DATA_WIDTH/2-1:0] >> B_i[4:0];
-        C_o = {{DATA_WIDTH / 2{intermedia[DATA_WIDTH/2-1]}}, intermedia};
+        C_o = sext_32(intermedia);
       end
       ALU_SRAW: begin
-        intermedia = $signed(A_i[DATA_WIDTH/2-1:0]) >> B_i[4:0];
-        C_o = {{DATA_WIDTH / 2{intermedia[DATA_WIDTH/2-1]}}, intermedia};
+        intermedia = sra_32(A_i[DATA_WIDTH/2-1:0], B_i[4:0]);
+        C_o = sext_32(intermedia);
       end
     endcase
   end

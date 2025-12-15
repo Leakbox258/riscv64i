@@ -186,7 +186,7 @@ static int cmd_xi(char *args) {
     /// TODO: addr maybe acceed the limit of the neum address?
 
     printf("%08x: %08x \n", (uint32_t)(addr + CPU_PHYADDR_BEGIN),
-           CPU_INSTS[addr / 4]);
+           *((uint32_t *)&CPU_RAM[addr]));
 
     addr += 4; // skip a word
   }

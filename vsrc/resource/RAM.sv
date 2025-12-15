@@ -6,6 +6,7 @@ module RAM
     parameter RAM_SIZE = 16
 ) (
     input logic                  clk,
+    input logic [  RAM_SIZE-1:0] pc_i,
     input logic [  RAM_SIZE-1:0] addr_i,
     input logic                  enwr_i,
     input logic                  En_i,
@@ -13,7 +14,10 @@ module RAM
     input logic [           2:0] wid_i,
 
     output logic [DATA_WIDTH-1:0] data_o,
-    output logic unalign_access
+    output logic [INST_WIDTH-1:0] inst_o,
+    output logic unalign_access,
+    output logic illegal_access_o
+
 );
 
   parameter MEM_B = 3'b000, MEM_H = 3'b001, MEM_W = 3'b010,
@@ -22,6 +26,10 @@ module RAM
 
   /* verilator public_module */
   reg [7:0] ram_[2**(RAM_SIZE)-1:0];
+
+  initial begin
+    $readmemh("build/app.hex", ram_);
+  end
 
   always_ff @(posedge clk) begin
 
@@ -133,5 +141,24 @@ module RAM
     end
   end
 
+  //   always_ff @(posedge clk) begin
+  //     if (pc_i[1:0] == 2'b0) begin
+  //       illegal_access_o <= 0;
+  //       inst_o <= {ram_[pc_i+3], ram_[pc_i+2], ram_[pc_i+1], ram_[pc_i]};
+  //     end else begin
+  //       illegal_access_o <= 1;  // unalign
+  //       inst_o <= 0;
+  //     end
+  //   end
+
+  always_comb begin
+    if (pc_i[1:0] == 2'b0) begin
+      illegal_access_o = 0;
+      inst_o = {ram_[pc_i+3], ram_[pc_i+2], ram_[pc_i+1], ram_[pc_i]};
+    end else begin
+      illegal_access_o = 1;  // unalign
+      inst_o = 0;
+    end
+  end
 
 endmodule

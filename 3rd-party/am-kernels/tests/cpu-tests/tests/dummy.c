@@ -1,7 +1,4 @@
 int main() {
-  int i = 0;
-  while (i < 4) {
-    ++i;
-  }
-  return 0;
+  unsigned c = 0xfffffffc;
+  return (int)c >> 4;
 }

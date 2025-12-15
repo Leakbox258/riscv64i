@@ -67,8 +67,8 @@ void cpu_exec(unsigned i) {
     if (std::find_if(cpu_watch_points.begin(), cpu_watch_points.end(),
                      [&](const auto &wp) {
                        return wp >= (paddr_t)exmem_out.ALU_Result &&
-                              wp <= (paddr_t)(exmem_out.ALU_Result +
-                                              memwid(exmem_out.Detail));
+                              wp < (paddr_t)(exmem_out.ALU_Result +
+                                             memwid(exmem_out.Detail));
                      }) != cpu_watch_points.end()) {
 
       if (memwid(exmem_out.Detail) != -1 &&
