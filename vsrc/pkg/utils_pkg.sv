@@ -46,7 +46,7 @@ package utils_pkg;
     // $signed(data)
     logic [31:0] intermedia, fixup;
     intermedia = data >> shift;
-    fixup = data[31] == '1 ? 32'hffffffff << (32 - shift) : '0;
+    fixup = data[31] == 1'b1 ? 32'hffffffff << (32 - shift) : 32'b0;
     return intermedia + fixup;
   endfunction
 
@@ -54,7 +54,7 @@ package utils_pkg;
     // $signed(data)
     logic [63:0] intermedia, fixup;
     intermedia = data >> shift;
-    fixup = data[63] == '1 ? 64'hffffffff << (64 - shift) : '0;
+    fixup = data[63] == 1'b1 ? 64'hffffffff << (64 - shift) : 64'b0;
     return intermedia + fixup;
   endfunction
 
@@ -69,8 +69,8 @@ package utils_pkg;
 
     case (flags)
       'b00: result = intermedia1 < intermedia2;
-      'b01: result = '0;
-      'b10: result = '1;
+      'b01: result = 1'b0;
+      'b10: result = 1'b1;
       'b11: result = intermedia1 > intermedia2;
     endcase
 

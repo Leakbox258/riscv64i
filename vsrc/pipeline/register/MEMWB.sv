@@ -15,7 +15,7 @@ module MEMWB
 
   always_ff @(posedge clk_i) begin
     if (rst_i) begin
-      data_o <= '0;
+      data_o <= 0;
     end else begin
       data_o.PC <= data_i.PC;
       data_o.PC_Next <= data_i.PC_Next;

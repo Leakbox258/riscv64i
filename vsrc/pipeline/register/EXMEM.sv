@@ -12,7 +12,7 @@ module EXMEM
 
   always_ff @(posedge clk_i) begin
     if (rst_i) begin
-      data_o <= '0;
+      data_o <= 0;
     end else begin
       data_o <= data_i;
     end

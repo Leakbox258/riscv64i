@@ -57,9 +57,9 @@ module CPU
   logic ifid_in_en;
   always_ff @(posedge clk_i) begin
     if (rst_i) begin
-      ifid_in_en <= '0;
+      ifid_in_en <= 1'b0;
     end else begin
-      ifid_in_en <= '1;
+      ifid_in_en <= 1'b1;
     end
   end
 
@@ -289,7 +289,7 @@ module CPU
   // Exceptions
   // =======================================================================
   always_ff @(posedge clk_i) begin
-    if (rst_i) exceptions_o <= '0;
+    if (rst_i) exceptions_o <= 8'b0;
     else begin
       exceptions_o[FetchError] <= exception[FetchError] & ifid_in.enable;
       exceptions_o[DecodeError] <= exception[DecodeError] & idex_in.enable;
@@ -373,7 +373,7 @@ module CPU
   /// Display
   always_ff @(posedge clk_i) begin
     if (rst_i) begin
-      cycle <= '0;
+      cycle <= 32'b0;
     end else begin
       cycle <= cycle + 1;
     end

@@ -1,8 +1,5 @@
 module Monitor #(
-    DATA_WIDTH = 64,
-    INST_WIDTH = 32,
-    RF_SIZE = 5,
-    RAM_SIZE = 12
+    DATA_WIDTH = 64
 ) (
     input clk_i,
     input rst_i,
@@ -70,7 +67,7 @@ module Monitor #(
   reg [2:0] state, nstate;
 
   always_comb begin
-    if (exception[Anormaly:0] != '0) begin
+    if (exception[Anormaly:0] != {Anormaly + 1{1'b0}}) begin
       nstate = ERROR;
     end else if (exception[ECALL]) begin
       /// TODO: handle traps

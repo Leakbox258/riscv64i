@@ -21,7 +21,7 @@ module PC (
     end
 
     if (rst_i) begin
-      cycle <= '0;
+      cycle <= 32'b0;
     end else begin
       cycle <= cycle + 1;
     end

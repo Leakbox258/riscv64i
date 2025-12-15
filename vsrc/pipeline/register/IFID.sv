@@ -14,9 +14,9 @@ module IFID
 
   always_ff @(posedge clk_i) begin
     if (rst_i) begin
-      data_o <= '0;
+      data_o <= 0;
     end else if (flush_i) begin
-      data_o <= '0;
+      data_o <= 0;
     end else if (!stall_i) begin
       data_o <= data_i;
     end

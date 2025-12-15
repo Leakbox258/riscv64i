@@ -7,8 +7,19 @@ VMonitor top;
 void nvboard_bind_all_pins(VMonitor *top);
 void nvboard_init(int);
 void nvboard_update();
-void cpu_single_cycle();
-void cpu_reset(int);
+void cpu_single_cycle() {
+  top.clk_i = 0;
+  top.eval();
+  top.clk_i = 1;
+  top.eval();
+}
+void cpu_reset(int n) {
+  top.rst_i = 1;
+  while (n-- > 0) {
+    cpu_single_cycle();
+  }
+  top.rst_i = 0;
+}
 #else
 void init_monitor(int argc, char *argv[]);
 void engine_start();

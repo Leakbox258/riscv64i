@@ -17,6 +17,9 @@ OBJ_DIR = $(BUILD_DIR)/obj_dir
 
 NVBIN = $(BUILD_DIR)/$(addprefix nv_, $(TOPNAME))
 BIN = $(BUILD_DIR)/$(TOPNAME)
+VBIN = $(BUILD_DIR)/$(addprefix v_, $(TOPNAME))
+
+SV2V = $(BUILD_DIR)/$(TOPNAME).v
 
 ALL ?=
 
@@ -30,6 +33,7 @@ $(SRC_AUTO_BIND): $(NXDC_FILES)
 # project source
 VSRCS = $(shell find $(abspath ./vsrc) -name "*.v" -or -name "*.sv")
 CSRCS = $(shell find $(abspath ./csrc) -name "*.c" -or -name "*.cc" -or -name "*.cpp")
+CENTRY = csrc/main.cpp
 
 # rules for NVBoard
 include $(NVBOARD_HOME)/scripts/nvboard.mk
@@ -39,14 +43,14 @@ INCFLAGS = $(addprefix -I, $(abspath $(INC_PATH)))
 CXXFLAGS += $(INCFLAGS) -DTOP_NAME="\"V$(TOPNAME)\""
 READLINE_LIB = "-lreadline"
 
-$(NVBIN): $(VSRCS) $(CSRCS) $(SRC_AUTO_BIND) $(NVBOARD_ARCHIVE)
+$(NVBIN): $(VSRCS) $(CENTRY) $(SRC_AUTO_BIND) $(NVBOARD_ARCHIVE)
 	@rm -rf $(OBJ_DIR)
 	$(VERILATOR) $(VERILATOR_CFLAGS) $(VERILATOR_INCLUDE) \
 		--top-module $(TOPNAME) $^ \
 		$(addprefix -CFLAGS , $(CXXFLAGS)) \
 		-CFLAGS -DNVBOARD \
 		$(addprefix -LDFLAGS , $(LDFLAGS)) \
-		$(addprefix -LDFLAGS , $(READLINE_LIB))\
+		$(addprefix -LDFLAGS , $(READLINE_LIB)) \
 		--Mdir $(OBJ_DIR) --exe -o $(abspath $(NVBIN))
 
 $(BIN): $(VSRCS) $(CSRCS)
@@ -54,8 +58,18 @@ $(BIN): $(VSRCS) $(CSRCS)
 	$(VERILATOR) $(VERILATOR_CFLAGS) $(VERILATOR_INCLUDE) \
 		--top-module $(TOPNAME) $^ \
 		$(addprefix -CFLAGS , $(CXXFLAGS)) \
-		$(addprefix -LDFLAGS , $(READLINE_LIB))\
+		$(addprefix -LDFLAGS , $(READLINE_LIB)) \
 		--Mdir $(OBJ_DIR) --exe -o $(abspath $(BIN))
+
+$(VBIN): $(SV2V) $(CENTRY) $(SRC_AUTO_BIND) $(NVBOARD_ARCHIVE)
+	@rm -rf $(OBJ_DIR)
+	$(VERILATOR) $(VERILATOR_CFLAGS) \
+		--top-module $(TOPNAME) $^ \
+		$(addprefix -CFLAGS , $(CXXFLAGS)) \
+		-CFLAGS -DNVBOARD \
+		$(addprefix -LDFLAGS , $(LDFLAGS)) \
+		$(addprefix -LDFLAGS , $(READLINE_LIB)) \
+		--Mdir $(OBJ_DIR) --exe -o $(abspath $(VBIN))
 
 # generate headers for C++ linting
 headers: $(VSRCS)
@@ -84,6 +98,16 @@ run: $(BIN) testcase
 debug: $(BIN) testcase
 	@clear
 	@$(BIN)
+
+$(SV2V):
+	sv2v $(VERILATOR_INCLUDE) $(VSRCS) --write=$(SV2V)
+
+sv2v:
+	sv2v $(VERILATOR_INCLUDE) $(VSRCS) --write=$(SV2V)
+
+vrun: $(VBIN) testcase
+	@clear
+	@$(VBIN)
 
 clean:
 	rm -rf $(BUILD_DIR)
