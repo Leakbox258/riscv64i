@@ -28,9 +28,10 @@ image: image-dep
 run: insert-arg
 	@echo "TODO: add command here to run simulation"
 
+VERILOG_DATA_WIDTH ?= 1
 debug: insert-arg
 	@echo "build $(IMAGE).bin for debug"
-	objcopy -I binary -O verilog --verilog-data-width=1 $(IMAGE).bin $(BUILD_DIR)/app.hex
+	objcopy -I binary -O verilog --verilog-data-width=$(VERILOG_DATA_WIDTH) $(IMAGE).bin $(BUILD_DIR)/app.hex
 # 	xxd -p -c 4 $(IMAGE).bin | sed 's/\(..\)\(..\)\(..\)\(..\)/\4\3\2\1/' > $(BUILD_DIR)/app.hex
 
 .PHONY: insert-arg

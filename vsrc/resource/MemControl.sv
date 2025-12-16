@@ -1,6 +1,6 @@
 `include "utils_pkg.sv"
 
-module RAM
+module MemControl
   import utils_pkg::*;
 #(
     parameter RAM_SIZE = 16
@@ -25,7 +25,7 @@ module RAM
   parameter Write = 1'b0, Read = 1'b1;
 
   /* verilator public_module */
-  reg [7:0] ram_[2**(RAM_SIZE)-1:0];
+  reg [7:0] ram_[2**(RAM_SIZE)-1:0];  // this varible here is only for simulation
 
   initial begin
     $readmemh("build/app.hex", ram_);
@@ -141,24 +141,24 @@ module RAM
     end
   end
 
-  //   always_ff @(posedge clk) begin
-  //     if (pc_i[1:0] == 2'b0) begin
-  //       illegal_access_o <= 0;
-  //       inst_o <= {ram_[pc_i+3], ram_[pc_i+2], ram_[pc_i+1], ram_[pc_i]};
-  //     end else begin
-  //       illegal_access_o <= 1;  // unalign
-  //       inst_o <= 0;
-  //     end
-  //   end
-
-  always_comb begin
+  always_ff @(posedge clk) begin
     if (pc_i[1:0] == 2'b0) begin
-      illegal_access_o = 0;
-      inst_o = {ram_[pc_i+3], ram_[pc_i+2], ram_[pc_i+1], ram_[pc_i]};
+      illegal_access_o <= 0;
+      inst_o <= {ram_[pc_i+3], ram_[pc_i+2], ram_[pc_i+1], ram_[pc_i]};
     end else begin
-      illegal_access_o = 1;  // unalign
-      inst_o = 0;
+      illegal_access_o <= 1;  // unalign
+      inst_o <= 0;
     end
   end
+
+  //   always_comb begin
+  //     if (pc_i[1:0] == 2'b0) begin
+  //       illegal_access_o = 0;
+  //       inst_o = {ram_[pc_i+3], ram_[pc_i+2], ram_[pc_i+1], ram_[pc_i]};
+  //     end else begin
+  //       illegal_access_o = 1;  // unalign
+  //       inst_o = 0;
+  //     end
+  //   end
 
 endmodule

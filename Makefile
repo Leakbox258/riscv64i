@@ -100,10 +100,11 @@ debug: $(BIN) testcase
 	@$(BIN)
 
 $(SV2V):
-	sv2v $(VERILATOR_INCLUDE) $(VSRCS) --write=$(SV2V)
+	sv2v $(VERILATOR_INCLUDE) $(VSRCS) --top=Monitor --write=$(SV2V)
 
 sv2v:
-	sv2v $(VERILATOR_INCLUDE) $(VSRCS) --write=$(SV2V)
+	@mkdir -p $(BUILD_DIR)/verilog
+	$(foreach sv, $(VSRCS),$(shell sv2v $(VERILATOR_INCLUDE) $(sv) --write=$(BUILD_DIR)/verilog/$(notdir $(sv)).v))
 
 vrun: $(VBIN) testcase
 	@clear

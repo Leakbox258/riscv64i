@@ -19,7 +19,7 @@ module CPU
   // =======================================================================
   logic [INST_WIDTH-1:0] inst_if;
   logic [INST_WIDTH-1:0] data_i;
-  logic [RAM_SIZE-1:0] pc_addr_if = pc_i[RAM_SIZE-1:0];
+  wire [RAM_SIZE-1:0] pc_addr_if = pc_i[RAM_SIZE-1:0];
 
   //   /* verilator public_module */
   //   CodeROM code (
@@ -29,7 +29,7 @@ module CPU
   //   );
 
   /* verilator public_module */
-  RAM ram (
+  MemControl ram (
       .clk(clk_i),
       .addr_i(mem_addr_exmem),
       .pc_i(pc_addr_if),
@@ -84,7 +84,7 @@ module CPU
   assign idex_in.RegData[IDX_RS2] = GprReadRs2;
 
   IDU idu (
-      .inst_i(ifid_out.Inst),
+      .inst_i(inst_if),
 
       .enable_o  (idex_in.Enable),
       .aluop_o   (idex_in.ALUOp),
@@ -122,7 +122,7 @@ module CPU
 
 
   IMMGen immgen (
-      .inst_i(ifid_out.Inst),
+      .inst_i(inst_if),
       .imme_o(idex_in.Imm)
   );
 
