@@ -3,9 +3,16 @@
 module Forward
   import pipeline_pkg::*;
 (
-    input IDEX_Pipe_t idex_out,
-    input EXMEM_Pipe_t exmem_out,
-    input MEMWB_Pipe_Out_t memwb_out,
+    input EnRs1_ex,
+    input EnRs2_ex,
+    input EnMemW_ex,
+
+    input EnRegW_mem,
+    input [RF_SIZE-1:0] RdIdx_mem,
+    input EnRegW_wb,
+    input [RF_SIZE-1:0] RdIdx_wb,
+    input [RF_SIZE-1:0] Rs1Idx_ex,
+    input [RF_SIZE-1:0] Rs2Idx_ex,
 
     output logic [1:0] Forward_A,
     output logic [1:0] Forward_B,
@@ -14,10 +21,10 @@ module Forward
 
   always_comb begin
 
-    if (idex_out.Enable[IDX_RS1]) begin
-      if (exmem_out.Reg_WEn && exmem_out.RegIdx[IDX_RD] == idex_out.RegIdx[IDX_RS1]) begin
+    if (EnRs1_ex) begin
+      if (EnRegW_mem && RdIdx_mem == Rs1Idx_ex) begin
         Forward_A = MEM_TO_ALU;
-      end else if (memwb_out.Reg_WEn && memwb_out.RD_Addr == idex_out.RegIdx[IDX_RS1]) begin
+      end else if (EnRegW_wb && RdIdx_wb == Rs1Idx_ex) begin
         Forward_A = WB_TO_ALU;
       end else Forward_A = NO_FWD;
     end else Forward_A = NO_FWD;
@@ -26,10 +33,10 @@ module Forward
 
   always_comb begin
 
-    if (idex_out.Enable[IDX_RS2]) begin
-      if (exmem_out.Reg_WEn && exmem_out.RegIdx[IDX_RD] == idex_out.RegIdx[IDX_RS2]) begin
+    if (EnRs2_ex) begin
+      if (EnRegW_mem && RdIdx_mem == Rs2Idx_ex) begin
         Forward_B = MEM_TO_ALU;
-      end else if (memwb_out.Reg_WEn && memwb_out.RD_Addr == idex_out.RegIdx[IDX_RS2]) begin
+      end else if (EnRegW_wb && RdIdx_wb == Rs2Idx_ex) begin
         Forward_B = WB_TO_ALU;
       end else Forward_B = NO_FWD;
     end else Forward_B = NO_FWD;
@@ -38,10 +45,10 @@ module Forward
 
 
   always_comb begin
-    if (idex_out.Enable[IDX_MWRITE]) begin
-      if (exmem_out.Reg_WEn && exmem_out.RegIdx[IDX_RD] == idex_out.RegIdx[IDX_RS2]) begin
+    if (EnMemW_ex) begin
+      if (EnRegW_mem && RdIdx_mem == Rs2Idx_ex) begin
         Forward_Store = MEM_TO_ALU;
-      end else if (memwb_out.Reg_WEn && memwb_out.RD_Addr == idex_out.RegIdx[IDX_RS2]) begin
+      end else if (EnRegW_wb && RdIdx_wb == Rs2Idx_ex) begin
         Forward_Store = WB_TO_ALU;
       end else Forward_Store = NO_FWD;
     end else Forward_Store = NO_FWD;

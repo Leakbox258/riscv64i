@@ -19,14 +19,8 @@ module CPU
   // =======================================================================
   logic [INST_WIDTH-1:0] inst_if;
   logic [INST_WIDTH-1:0] data_i;
-  wire [RAM_SIZE-1:0] pc_addr_if = pc_i[RAM_SIZE-1:0];
-
-  //   /* verilator public_module */
-  //   CodeROM code (
-  //       .addr_i(pc_i),
-  //       .data_o(data_i),
-  //       .illegal_access_o(exception[FetchError])
-  //   );
+  (* keep = 1 *) logic [DATA_WIDTH-1:0] mem_addr_exmem;
+  (* keep = 1 *) wire [DATA_WIDTH-1:0] pc_addr_if = pc_i;
 
   /* verilator public_module */
   MemControl ram (
@@ -83,6 +77,9 @@ module CPU
   assign idex_in.RegData[IDX_RS1] = GprReadRs1;
   assign idex_in.RegData[IDX_RS2] = GprReadRs2;
 
+  (* keep = 1 *) wire [INST_WIDTH-1:0] inst_IDU;
+  assign inst_IDU = inst_if;
+
   IDU idu (
       .inst_i(inst_if),
 
@@ -120,9 +117,11 @@ module CPU
         memwb_out.WB_Data, memwb_out.Reg_WEn, memwb_out.Mem_REn, memdata_mem);
   end
 
+  (* keep = 1 *) wire [INST_WIDTH-1:0] inst_IMMGen;
+  assign inst_IMMGen = inst_if;
 
   IMMGen immgen (
-      .inst_i(inst_if),
+      .inst_i(inst_IMMGen),
       .imme_o(idex_in.Imm)
   );
 
@@ -146,10 +145,12 @@ module CPU
   logic [DATA_WIDTH-1:0] alu_A, alu_B;
   logic [DATA_WIDTH-1:0] alu_C;
   logic [DATA_WIDTH-1:0] pcn_ex;
+  (* keep = 1 *)wire  [DATA_WIDTH-1:0] ALU_Result;  // result from last cycle
+  assign ALU_Result = exmem_out.ALU_Result;
 
   always_comb begin
     case (Forward_A)
-      MEM_TO_ALU: alu_A = exmem_out.ALU_Result;
+      MEM_TO_ALU: alu_A = ALU_Result;
       WB_TO_ALU: alu_A = WB_Data;
       default: alu_A = ExMuxAluA;
     endcase
@@ -158,7 +159,7 @@ module CPU
   always_comb begin
     case (Forward_B)
       MEM_TO_ALU: begin
-        if (Forward_Store != MEM_TO_ALU) alu_B = exmem_out.ALU_Result;
+        if (Forward_Store != MEM_TO_ALU) alu_B = ALU_Result;
         else alu_B = ExMuxAluB;
       end
       WB_TO_ALU: begin
@@ -172,32 +173,43 @@ module CPU
 
   always_comb begin
     case (Forward_Store)
-      MEM_TO_ALU: exmem_in.Store_Data = exmem_out.ALU_Result;
+      MEM_TO_ALU: exmem_in.Store_Data = ALU_Result;
       WB_TO_ALU: exmem_in.Store_Data = WB_Data;
-      default: exmem_in.Store_Data = idex_out.RegData[IDX_RS2];
+      default: exmem_in.Store_Data = Rs2_EXU;
     endcase
   end
 
 
   logic [DATA_WIDTH-1:0] ExMuxAluA, ExMuxAluB;
+  (* keep = 1 *) wire ers1, ers2;
+  (* keep = 1 *) wire [DATA_WIDTH-1:0] Rs1_EXU, Rs2_EXU, Imm_EXU;
+  (* keep = 1 *) wire [DATA_WIDTH-1:0] pc;
+  assign ers1 = idex_out.Enable[IDX_RS1];
+  assign ers2 = idex_out.Enable[IDX_RS2];
+  assign Rs1_EXU = idex_out.RegData[IDX_RS1];
+  assign Rs2_EXU = idex_out.RegData[IDX_RS2];
+  assign Imm_EXU = idex_out.Imm;
+  assign pc = idex_out.PC;
+
   EXU Exu (
-      .ers1_i(idex_out.Enable[IDX_RS1]),
-      .ers2_i(idex_out.Enable[IDX_RS2]),
+      .ers1_i(ers1),
+      .ers2_i(ers2),
       .specinst_i(idex_out.SpecInst),
 
-      .rs1_i (idex_out.RegData[IDX_RS1]),
-      .rs2_i (idex_out.RegData[IDX_RS2]),
-      .pc_i  (idex_out.PC),
-      .imme_i(idex_out.Imm),
+      .rs1_i (Rs1_EXU),
+      .rs2_i (Rs2_EXU),
+      .pc_i  (pc),
+      .imme_i(Imm_EXU),
 
       .alu_A_o(ExMuxAluA),
       .alu_B_o(ExMuxAluB)
   );
 
+  (* keep = 1 *) wire [3:0] ALUOp = idex_out.ALUOp;
   ALU Alu (
       .A_i(alu_A),
       .B_i(alu_B),
-      .opcode_i(idex_out.ALUOp),
+      .opcode_i(ALUOp),
       .C_o(alu_C)
   );
 
@@ -209,12 +221,19 @@ module CPU
         Forward_B == MEM_TO_ALU ? "true" : "false", Forward_B == WB_TO_ALU ? " true" : "false");
   end
 
+  (* keep = 1 *)wire [DATA_WIDTH-1:0] Imm_PCN;
+  (* keep = 1 *)wire [DATA_WIDTH-1:0] PC_PCN;
+  (* keep = 1 *)wire [DATA_WIDTH-1:0] Rs1_PCN;
+  assign Imm_PCN = idex_out.Imm;
+  assign PC_PCN  = idex_out.PC;
+  assign Rs1_PCN = idex_out.RegData[IDX_RS1];
+
   PCN Pcn (
       .specinst_i(idex_out.SpecInst),
       .detail_i(idex_out.Detail),
-      .pc_i(idex_out.PC),
-      .rs1_i(idex_out.RegData[IDX_RS1]),
-      .imme_i(idex_out.Imm),
+      .pc_i(PC_PCN),
+      .rs1_i(Rs1_PCN),
+      .imme_i(Imm_PCN),
       .aluout_i(alu_C),
       .pcn_o(pcn_ex)
   );
@@ -246,8 +265,7 @@ module CPU
   // =======================================================================
   // 4. MEM
   // =======================================================================
-  logic [RAM_SIZE-1:0] mem_addr_exmem;
-  assign mem_addr_exmem = exmem_out.ALU_Result[RAM_SIZE-1:0];
+  assign mem_addr_exmem = exmem_out.ALU_Result;
   wire [DATA_WIDTH-1:0] memdata_mem;
 
   /// display
@@ -282,7 +300,7 @@ module CPU
   // WB
   // =======================================================================
 
-  logic [DATA_WIDTH-1:0] WB_Data;
+  wire [DATA_WIDTH-1:0] WB_Data;
   assign WB_Data = memwb_out.Mem_REn ? memdata_mem : memwb_out.WB_Data;
 
   // =======================================================================
@@ -302,11 +320,39 @@ module CPU
   // Forward
   // ======================================================================= 
   logic [1:0] Forward_A, Forward_B, Forward_Store;
+  (* keep = 1 *) wire EnRs1_ex;
+  (* keep = 1 *) wire EnRs2_ex;
+  (* keep = 1 *) wire EnMemW_ex;
+
+  (* keep = 1 *) wire EnRegW_mem;
+  (* keep = 1 *) wire [RF_SIZE-1:0] RdIdx_mem;
+  (* keep = 1 *) wire EnRegW_wb;
+  (* keep = 1 *) wire [RF_SIZE-1:0] RdIdx_wb;
+  (* keep = 1 *) wire [RF_SIZE-1:0] Rs1Idx_ex;
+  (* keep = 1 *) wire [RF_SIZE-1:0] Rs2Idx_ex;
+
+  assign EnRs1_ex   = idex_out.Enable[IDX_RS1];
+  assign EnRs2_ex   = idex_out.Enable[IDX_RS2];
+  assign EnMemW_ex  = idex_out.Enable[IDX_MWRITE];
+  assign EnRegW_mem = exmem_out.Reg_WEn;
+  assign RdIdx_mem  = exmem_out.RegIdx[IDX_RD];
+  assign EnRegW_wb  = memwb_out.Reg_WEn;
+  assign RdIdx_wb   = memwb_out.RD_Addr;
+  assign Rs1Idx_ex  = idex_out.RegIdx[IDX_RS1];
+  assign Rs2Idx_ex  = idex_out.RegIdx[IDX_RS2];
 
   Forward Forward (
-      .idex_out (idex_out),   // EX
-      .exmem_out(exmem_out),  // MEM
-      .memwb_out(memwb_out),  // WB
+
+      .EnRs1_ex (EnRs1_ex),
+      .EnRs2_ex (EnRs2_ex),
+      .EnMemW_ex(EnMemW_ex),
+
+      .EnRegW_mem(EnRegW_mem),
+      .RdIdx_mem (RdIdx_mem),
+      .EnRegW_wb (EnRegW_wb),
+      .RdIdx_wb  (RdIdx_wb),
+      .Rs1Idx_ex (Rs1Idx_ex),
+      .Rs2Idx_ex (Rs2Idx_ex),
 
       .Forward_A(Forward_A),
       .Forward_B(Forward_B),
@@ -318,11 +364,21 @@ module CPU
   // Stall
   // ======================================================================= 
   logic stall;
+  (* keep = 1 *) wire EnMemR_ex, EnRd_ex;
+  (* keep = 1 *) wire [RF_SIZE-1:0] RdIdx_ex, Rs1Idx_id, Rs2Idx_id;
+  assign EnMemR_ex = idex_out.Enable[IDX_MREAD];
+  assign EnRd_ex   = idex_out.Enable[IDX_RD];
+  assign RdIdx_ex  = idex_out.RegIdx[IDX_RD];
+  assign Rs1Idx_id = idex_in.RegIdx[IDX_RS1];
+  assign Rs2Idx_id = idex_in.RegIdx[IDX_RS2];
+
 
   Stall Stall (
-      .idex_in (idex_in),  // ID
-      .idex_out(idex_out), // EX
-
+      .EnMemR_ex(EnMemR_ex),
+      .EnRd_ex(EnRd_ex),
+      .RdIdx_ex(RdIdx_ex),
+      .Rs1Idx_id(Rs1Idx_id),
+      .Rs2Idx_id(Rs2Idx_id),
       .stall(stall)
   );
 
@@ -330,11 +386,14 @@ module CPU
   // Flush
   // ======================================================================= 
   logic flush_if, flush_id;
+  (* keep = 1 *) wire [DATA_WIDTH-1:0] PC_FLUSH, PCN_FLUSH;
+  assign PC_FLUSH  = exmem_in.PC;
+  assign PCN_FLUSH = exmem_in.PC_Next;
 
   Flush Flush (
       .exception(exception),
-      .pc(exmem_in.PC),
-      .pcn(exmem_in.PC_Next),
+      .pc(PC_FLUSH),
+      .pcn(PCN_FLUSH),
       .enable(exmem_in.enable),
 
       .flush_id(flush_id),

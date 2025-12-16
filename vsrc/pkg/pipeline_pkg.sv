@@ -34,7 +34,7 @@ package pipeline_pkg;
     logic [DATA_WIDTH-1:0]      PC;
     logic [DATA_WIDTH-1:0]      Imm;
     logic [2:0][RF_SIZE-1:0]    RegIdx;
-    logic [1:0][DATA_WIDTH-1:0] RegData;
+    logic [1:0][DATA_WIDTH-1:0] RegData;   // 59 60
     logic [4:0]                 Enable;
     logic [3:0]                 ALUOp;
     logic [2:0]                 SpecInst;
@@ -48,7 +48,7 @@ package pipeline_pkg;
     logic [DATA_WIDTH-1:0]   PC_Next;
     logic [DATA_WIDTH-1:0]   ALU_Result;
     logic [DATA_WIDTH-1:0]   Store_Data;
-    logic [2:0][RF_SIZE-1:0] RegIdx;
+    logic [2:0][RF_SIZE-1:0] RegIdx;      // 20
     logic                    Reg_WEn;
     logic                    Mem_REn;
     logic                    Mem_WEn;

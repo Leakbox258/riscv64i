@@ -46,7 +46,7 @@ module IDU #(
   parameter RS1 = 0, RS2 = 1, RD = 2, MREAD = 3, MWRITE = 4;
 
   /* Enum Specific Inst */
-  parameter BR = 0, JAL = 1, JALR = 2, AUIPC = 3, LUI = 4, STORE = 5, LOAD = 6, NO_SPEC = 7;
+  parameter S_BR = 0, S_JAL = 1, S_JALR = 2, S_AUIPC = 3, S_LUI = 4, S_STORE = 5, S_LOAD = 6, NO_SPEC = 7;
 
   /* Enum Branch type */
   parameter B_EQ = 3'b000, B_NE = 3'b001, B_LT = 3'b100, B_GE = 3'b101, B_LTU = 3'b110, B_GEU = 3'b111;
@@ -109,7 +109,7 @@ module IDU #(
 
         if (funct3 == 3'b111) decode_error[1] = 1;
 
-        specinst_o = LOAD;
+        specinst_o = S_LOAD;
       end
       Store: begin
         enable_o[RS1] = 1;
@@ -119,32 +119,32 @@ module IDU #(
 
         if (funct3 == 3'b111) decode_error[1] = 1;
 
-        specinst_o = STORE;
+        specinst_o = S_STORE;
       end
       Branch: begin
         enable_o[RS1] = 1;
         enable_o[RS2] = 1;
-        specinst_o = BR;
+        specinst_o = S_BR;
       end
       Jal: begin
         enable_o[RD] = 1;
-        specinst_o   = JAL;
+        specinst_o   = S_JAL;
       end
       Jalr: begin
         enable_o[RD] = 1;
         enable_o[RS1] = 1;
         // calculate address
-        specinst_o = JALR;
+        specinst_o = S_JALR;
       end
       Auipc: begin
         enable_o[RD] = 1;
 
-        specinst_o   = AUIPC;
+        specinst_o   = S_AUIPC;
       end
       Lui: begin
         enable_o[RD] = 1;
 
-        specinst_o   = LUI;
+        specinst_o   = S_LUI;
       end
       Env: begin
         env_exception_o[0] = funct12 == 12'b0;
@@ -157,6 +157,7 @@ module IDU #(
   /// get alu opcode
   always_comb begin
     decode_error[2] = 0;
+    aluop_o = ALU_ADD;
 
     case (opcode)
 
@@ -204,10 +205,10 @@ module IDU #(
         endcase
       end
 
-      Lui: aluop_o = ALU_COPY_B;  // LUI
-      Auipc: aluop_o = ALU_ADD;  // AUIPC (PC + imm)
-      Jal: aluop_o = ALU_ADD;  // JAL (PC + 4)
-      Jalr: aluop_o = ALU_ADD;  // JALR (PC + 4)
+      Lui: aluop_o = ALU_COPY_B;  // S_LUI
+      Auipc: aluop_o = ALU_ADD;  // S_AUIPC (PC + imm)
+      Jal: aluop_o = ALU_ADD;  // S_JAL (PC + 4)
+      Jalr: aluop_o = ALU_ADD;  // S_JALR (PC + 4)
       Load: aluop_o = ALU_ADD;  // Load (base + offset)
       Store: aluop_o = ALU_ADD;  // Store (base + offset)
       Branch: begin  // Branch (comparison)
@@ -221,7 +222,7 @@ module IDU #(
           default: decode_error[2] = 1;
         endcase
       end
-      default: aluop_o = ALU_ADD;
+      default: ;
     endcase
   end
 

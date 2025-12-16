@@ -1,4 +1,4 @@
-module Monitor #(
+module riscv64i #(
     DATA_WIDTH = 64
 ) (
     input clk_i,

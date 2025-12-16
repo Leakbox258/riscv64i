@@ -11,9 +11,9 @@ module CodeROM #(
   /* verilator public_module */
   logic [DATA_WIDTH-1:0] rom_[2**ROM_SIZE-1:0];
 
-  initial begin
-    $readmemh("build/app.hex", rom_);
-  end
+  //   initial begin
+  //     $readmemh("build/app.hex", rom_);
+  //   end
 
   always_comb begin
     if (addr_i[1:0] == 2'b0) begin

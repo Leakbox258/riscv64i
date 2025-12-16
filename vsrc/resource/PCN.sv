@@ -13,14 +13,14 @@ module PCN #(
     output reg [DATA_WIDTH-1:0] pcn_o
 );
 
-  parameter BR = 0, JAL = 1, JALR = 2;
+  parameter S_BR = 0, S_JAL = 1, S_JALR = 2;
 
   /* Enum Branch type */
   parameter B_EQ = 3'b000, B_NE = 3'b001, B_LT = 3'b100, B_GE = 3'b101, B_LTU = 3'b110, B_GEU = 3'b111;
 
   always_comb begin
     pcn_o = pc_i + 4;
-    if (specinst_i == BR) begin
+    if (specinst_i == S_BR) begin
       case (detail_i)
         B_EQ: begin
           /// ALU_SUB
@@ -48,9 +48,9 @@ module PCN #(
         end
         default:  /**/;
       endcase
-    end else if (specinst_i == JAL) begin
+    end else if (specinst_i == S_JAL) begin
       pcn_o = imme_i + pc_i;
-    end else if (specinst_i == JALR) begin
+    end else if (specinst_i == S_JALR) begin
       pcn_o = (imme_i + rs1_i) & ~64'h1;
     end
   end

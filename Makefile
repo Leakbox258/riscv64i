@@ -1,5 +1,5 @@
-TOPNAME = Monitor
-NXDC_FILES = constr/Monitor.nxdc
+TOPNAME = riscv64i
+NXDC_FILES = constr/riscv64i.nxdc
 INC_PATH ?= ./csrc/include
 
 VERILATOR = verilator
@@ -31,7 +31,7 @@ $(SRC_AUTO_BIND): $(NXDC_FILES)
 	python3 $(NVBOARD_HOME)/scripts/auto_pin_bind.py $^ $@
 
 # project source
-VSRCS = $(shell find $(abspath ./vsrc) -name "*.v" -or -name "*.sv")
+VSRCS = $(shell find $(abspath ./vsrc) -name "*.sv") # sv only
 CSRCS = $(shell find $(abspath ./csrc) -name "*.c" -or -name "*.cc" -or -name "*.cpp")
 CENTRY = csrc/main.cpp
 
@@ -104,11 +104,17 @@ $(SV2V):
 
 sv2v:
 	@mkdir -p $(BUILD_DIR)/verilog
-	$(foreach sv, $(VSRCS),$(shell sv2v $(VERILATOR_INCLUDE) $(sv) --write=$(BUILD_DIR)/verilog/$(notdir $(sv)).v))
+	$(foreach sv, $(VSRCS),$(info "converting $(sv)"))
+	$(foreach sv, $(VSRCS),$(shell sv2v $(VERILATOR_INCLUDE) $(sv) -w $(BUILD_DIR)/verilog/$(notdir $(sv)).v))
 
 vrun: $(VBIN) testcase
 	@clear
 	@$(VBIN)
+
+CP_DIR ?= ~/workspace/riscv64i/rtl
+
+cp:
+	$(foreach sv, $(VSRCS), $(shell cp $(sv) $(CP_DIR)/.))
 
 clean:
 	rm -rf $(BUILD_DIR)
