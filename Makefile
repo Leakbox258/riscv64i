@@ -113,8 +113,8 @@ vrun: $(VBIN) testcase
 
 CP_DIR ?= ~/workspace/riscv64i/rtl
 
-cp:
-	$(foreach sv, $(VSRCS), $(shell cp $(sv) $(CP_DIR)/.))
+cp: sv2v
+	$(foreach v, $(shell find $(abspath $(BUILD_DIR)/verilog) -name "*.sv.v"), $(shell cp $(v) $(CP_DIR)/.))
 
 clean:
 	rm -rf $(BUILD_DIR)
