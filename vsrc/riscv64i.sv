@@ -1,8 +1,8 @@
 module riscv64i #(
     DATA_WIDTH = 64
 ) (
-    input clk_i,
-    input rst_i,
+    input clk,
+    input rst,
 
     output [7:0] seg0,
     output [7:0] seg1,
@@ -26,17 +26,17 @@ module riscv64i #(
 
   /* verilator public_module */
   PC Pc (
-      .clk_i(clk_i),
+      .clk_i(clk),
       .ewrite_i(state == NORMAL),
-      .rst_i(rst_i),
+      .rst_i(rst),
       .data_i(new_pc),
       .pc_o(pc)
   );
 
   /* verilator public_module */
   CPU Cpu (
-      .clk_i(clk_i),
-      .rst_i(rst_i),
+      .clk_i(clk),
+      .rst_i(rst),
       .pc_i(pc),
       .new_pc_o(new_pc),
       .exceptions_o(exception)
@@ -44,8 +44,8 @@ module riscv64i #(
 
   wire [7:0] segs[7:0];
   Display #(DATA_WIDTH) display (
-      .clk_i(clk_i),
-      .rst_i(rst_i),
+      .clk_i(clk),
+      .rst_i(rst),
       .pc_i(pc),
       .nstate_i(nstate),
       .interrupts_i(exception),
@@ -80,13 +80,13 @@ module riscv64i #(
   end
 
   /// Display
-  always_ff @(posedge clk_i) begin
+  always_ff @(posedge clk) begin
     $strobe("Verilator: Exception code: %08b", exception);
   end
 
 
-  always_ff @(posedge clk_i) begin
-    if (rst_i) begin
+  always_ff @(posedge clk) begin
+    if (rst) begin
       state <= RST;  // meanwhile reset PC to 0x80000000
     end else begin
       state <= nstate;

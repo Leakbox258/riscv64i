@@ -10,17 +10,22 @@ module IDEX
 
     input  IDEX_Pipe_t data_i,
     output IDEX_Pipe_t data_o
-
 );
 
-  always_ff @(posedge clk_i) begin
+  IDEX_Pipe_t next_data;
+
+  always_comb begin
     if (rst_i) begin
-      data_o <= 0;
+      next_data = 0;
     end else if (flush_i || stall_i) begin
-      data_o <= 0;  // when stall, clear the flags to avoid block the pipeline after ID
+      next_data = 0;
     end else begin
-      data_o <= data_i;
+      next_data = data_i;
     end
+  end
+
+  always_ff @(posedge clk_i) begin
+    data_o <= next_data;
   end
 
 endmodule

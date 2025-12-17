@@ -59,6 +59,7 @@ module MemControl
     dataWEn = 0;
     dataREn = 0;
     dataByteEn = 0;
+    data_o = 0;
 
     dataAddr = addr_i[IPRAM_SIZE-1:3];  // select DWORD
 
@@ -108,7 +109,7 @@ module MemControl
           data_o = zext_32(dataRead[31:0]);
         end
         default: begin
-          data_o <= 0;
+          data_o = 0;
         end
       endcase
     end

@@ -4,7 +4,7 @@ module ALU
 (
     input [DATA_WIDTH-1:0] A_i,
     input [DATA_WIDTH-1:0] B_i,
-    input [3:0] opcode_i,
+    input [4:0] opcode_i,
     output reg [DATA_WIDTH-1:0] C_o
 );
 
@@ -13,10 +13,10 @@ module ALU
   			ALU_ADD = 0, ALU_SUB = 1,
             ALU_OR = 2, ALU_AND = 3, ALU_XOR = 4, 
 			ALU_SLL = 5, ALU_SRL = 6, ALU_SRA = 7,
-            ALU_SLT = 8, ALU_SLTU = 9,
-            ALU_COPY_B = 10,
-			ALU_ADDW = 11, ALU_SUBW = 12,
-			ALU_SLLW = 13, ALU_SRLW = 14, ALU_SRAW = 15;
+			ALU_EQ = 8, ALU_SLT = 9, ALU_SLTU = 10,
+            ALU_COPY_B = 11,
+			ALU_ADDW = 12, ALU_SUBW = 13,
+			ALU_SLLW = 14, ALU_SRLW = 15, ALU_SRAW = 16;
 
   reg [DATA_WIDTH/2-1 : 0] intermedia;
 
@@ -50,6 +50,9 @@ module ALU
       ALU_SRA: begin
         /// RV64I
         C_o = sra_64(A_i, B_i[5:0]);
+      end
+      ALU_EQ: begin
+        C_o = {{DATA_WIDTH - 1{1'b0}}, (A_i - B_i) == 0};
       end
       ALU_SLT: begin
         C_o = {{DATA_WIDTH - 1{1'b0}}, signed_slt(A_i, B_i)};

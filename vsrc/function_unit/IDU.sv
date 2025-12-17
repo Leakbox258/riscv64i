@@ -7,7 +7,7 @@ module IDU #(
     /* controls */
     output reg [4:0] enable_o,
 
-    output reg [3:0] aluop_o,
+    output reg [4:0] aluop_o,
     output reg [2:0] specinst_o,
 
     /* resources */
@@ -37,10 +37,10 @@ module IDU #(
   			ALU_ADD = 0, ALU_SUB = 1,
             ALU_OR = 2, ALU_AND = 3, ALU_XOR = 4, 
 			ALU_SLL = 5, ALU_SRL = 6, ALU_SRA = 7,
-            ALU_SLT = 8, ALU_SLTU = 9,
-            ALU_COPY_B = 10,
-			ALU_ADDW = 11, ALU_SUBW = 12,
-			ALU_SLLW = 13, ALU_SRLW = 14, ALU_SRAW = 15;
+			ALU_EQ = 8, ALU_SLT = 9, ALU_SLTU = 10,
+            ALU_COPY_B = 11,
+			ALU_ADDW = 12, ALU_SUBW = 13,
+			ALU_SLLW = 14, ALU_SRLW = 15, ALU_SRAW = 16;
 
   /* Enable params */
   parameter RS1 = 0, RS2 = 1, RD = 2, MREAD = 3, MWRITE = 4;
@@ -213,8 +213,8 @@ module IDU #(
       Store: aluop_o = ALU_ADD;  // Store (base + offset)
       Branch: begin  // Branch (comparison)
         case (funct3)
-          B_EQ: aluop_o = ALU_SUB;
-          B_NE: aluop_o = ALU_SUB;
+          B_EQ: aluop_o = ALU_EQ;
+          B_NE: aluop_o = ALU_EQ;
           B_LT: aluop_o = ALU_SLT;
           B_GE: aluop_o = ALU_SLT;
           B_LTU: aluop_o = ALU_SLTU;

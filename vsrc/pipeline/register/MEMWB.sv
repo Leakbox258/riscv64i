@@ -13,19 +13,25 @@ module MEMWB
     output MEMWB_Pipe_Out_t data_o
 );
 
-  always_ff @(posedge clk_i) begin
-    if (rst_i) begin
-      data_o <= 0;
-    end else begin
-      data_o.PC <= data_i.PC;
-      data_o.PC_Next <= data_i.PC_Next;
-      data_o.RD_Addr <= data_i.RD_Addr;
-      data_o.Reg_WEn <= data_i.Reg_WEn;
-      data_o.enable <= data_i.enable;
+  MEMWB_Pipe_Out_t next_data;
 
-      data_o.WB_Data <= WB_Data;
-      data_o.Mem_REn <= Mem_REn;
+  always_comb begin
+    if (rst_i) begin
+      next_data = 0;
+    end else begin
+      next_data.PC = data_i.PC;
+      next_data.PC_Next = data_i.PC_Next;
+      next_data.RD_Addr = data_i.RD_Addr;
+      next_data.Reg_WEn = data_i.Reg_WEn;
+      next_data.enable = data_i.enable;
+
+      next_data.WB_Data = WB_Data;
+      next_data.Mem_REn = Mem_REn;
     end
+  end
+
+  always_ff @(posedge clk_i) begin
+    data_o <= next_data;
   end
 
 endmodule

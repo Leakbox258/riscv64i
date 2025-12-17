@@ -12,14 +12,22 @@ module IFID
     output IFID_Pipe_t data_o
 );
 
-  always_ff @(posedge clk_i) begin
+  IFID_Pipe_t next_data;
+
+  always_comb begin
     if (rst_i) begin
-      data_o <= 0;
+      next_data = 0;
     end else if (flush_i) begin
-      data_o <= 0;
+      next_data = 0;
     end else if (!stall_i) begin
-      data_o <= data_i;
+      next_data = data_i;
+    end else begin
+      next_data = data_o;  // keep
     end
+  end
+
+  always_ff @(posedge clk_i) begin
+    data_o <= next_data;
   end
 
 endmodule

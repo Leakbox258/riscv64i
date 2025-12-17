@@ -10,12 +10,18 @@ module EXMEM
     output EXMEM_Pipe_t data_o
 );
 
-  always_ff @(posedge clk_i) begin
+  EXMEM_Pipe_t next_data;
+
+  always_comb begin
     if (rst_i) begin
-      data_o <= 0;
+      next_data = 0;
     end else begin
-      data_o <= data_i;
+      next_data = data_i;
     end
+  end
+
+  always_ff @(posedge clk_i) begin
+    data_o <= next_data;
   end
 
 endmodule

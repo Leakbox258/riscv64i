@@ -36,7 +36,7 @@ package pipeline_pkg;
     logic [2:0][RF_SIZE-1:0]    RegIdx;
     logic [1:0][DATA_WIDTH-1:0] RegData;   // 59 60
     logic [4:0]                 Enable;
-    logic [3:0]                 ALUOp;
+    logic [4:0]                 ALUOp;
     logic [2:0]                 SpecInst;
     logic [2:0]                 Detail;
     logic                       enable;
@@ -50,8 +50,8 @@ package pipeline_pkg;
     logic [DATA_WIDTH-1:0]   Store_Data;
     logic [2:0][RF_SIZE-1:0] RegIdx;      // 20
     logic                    Reg_WEn;
-    logic                    Mem_REn;
-    logic                    Mem_WEn;
+    logic                    Mem_REn;     // 5
+    logic                    Mem_WEn;     // 4
     logic [2:0]              Detail;
     logic                    enable;
   } EXMEM_Pipe_t  /* verilator public */;
