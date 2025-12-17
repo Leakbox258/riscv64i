@@ -81,7 +81,7 @@ module CPU
   assign inst_IDU = inst_if;
 
   IDU idu (
-      .inst_i(inst_if),
+      .inst_i(inst_IDU),
 
       .enable_o  (idex_in.Enable),
       .aluop_o   (idex_in.ALUOp),
@@ -144,11 +144,21 @@ module CPU
   // =======================================================================
   logic [DATA_WIDTH-1:0] alu_A, alu_B;
   logic [DATA_WIDTH-1:0] alu_C;
+  logic [DATA_WIDTH-1:0] Rs1_BrJl;
   logic [DATA_WIDTH-1:0] pcn_ex;
   /* (* keep = 1 *) */wire  [DATA_WIDTH-1:0] ALU_Result;  // result from last cycle
   /* (* keep = 1 *) */wire  [DATA_WIDTH-1:0] WB_Data_ALU;
   assign ALU_Result  = exmem_out.ALU_Result;
   assign WB_Data_ALU = WB_Data;
+
+  always_comb begin
+    case (Forward_A)
+      MEM_TO_ALU: Rs1_BrJl = ALU_Result;
+      WB_TO_ALU: Rs1_BrJl = WB_Data_ALU;
+      default: Rs1_BrJl = Rs1_EXU;
+    endcase
+
+  end
 
   always_comb begin
     case (Forward_A)
@@ -219,7 +229,7 @@ module CPU
   BRJL brjl (
       .pc(pc),
       .specinst(idex_out.SpecInst),
-      .rs1(alu_A),  // may forward
+      .rs1(Rs1_BrJl),  // may forward
       .imme(Imm_EXU),
 
       .taken(taken),
@@ -233,13 +243,6 @@ module CPU
         alu_A, alu_B, alu_C, idex_out.RegData[IDX_RS1], idex_out.RegData[IDX_RS2], idex_out.Imm,
         Forward_B == MEM_TO_ALU ? "true" : "false", Forward_B == WB_TO_ALU ? " true" : "false");
   end
-
-  /* (* keep = 1 *) */wire [DATA_WIDTH-1:0] Imm_PCN;
-  /* (* keep = 1 *) */wire [DATA_WIDTH-1:0] PC_PCN;
-  /* (* keep = 1 *) */wire [DATA_WIDTH-1:0] Rs1_PCN;
-  assign Imm_PCN = idex_out.Imm;
-  assign PC_PCN  = idex_out.PC;
-  assign Rs1_PCN = idex_out.RegData[IDX_RS1];
 
   PCN Pcn (
       .specinst_i(idex_out.SpecInst),

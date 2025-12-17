@@ -21,9 +21,9 @@ static uint64_t g_timer = 0; // unit: us
 uint64_t g_nr_guest_inst = 0;
 
 void cpu_single_cycle() {
-  top.clk_i = 0;
+  top.clk = 0;
   top.eval();
-  top.clk_i = 1;
+  top.clk = 1;
   top.eval();
 }
 
@@ -41,11 +41,11 @@ void init_cpu() {
 }
 
 void cpu_reset(int n) {
-  top.rst_i = 1;
+  top.rst = 1;
   while (n-- > 0) {
     cpu_single_cycle();
   }
-  top.rst_i = 0;
+  top.rst = 0;
 }
 
 static int memwid(int);
