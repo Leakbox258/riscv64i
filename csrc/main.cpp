@@ -1,24 +1,24 @@
-#include "VMonitor.h"
+#include "Vriscv64i.h"
 #include <verilated.h>
 
-VMonitor top;
+Vriscv64i top;
 
 #ifdef NVBOARD
-void nvboard_bind_all_pins(VMonitor *top);
+void nvboard_bind_all_pins(Vriscv64i *top);
 void nvboard_init(int);
 void nvboard_update();
 void cpu_single_cycle() {
-  top.clk_i = 0;
+  top.clk = 0;
   top.eval();
-  top.clk_i = 1;
+  top.clk = 1;
   top.eval();
 }
 void cpu_reset(int n) {
-  top.rst_i = 1;
+  top.rst = 1;
   while (n-- > 0) {
     cpu_single_cycle();
   }
-  top.rst_i = 0;
+  top.rst = 0;
 }
 #else
 void init_monitor(int argc, char *argv[]);

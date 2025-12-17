@@ -26,7 +26,7 @@ module EXU #(
     if (ers1_i) alu_A_o = rs1_i;
     else if (specinst_i == AUIPC) alu_A_o = pc_i;  // PC + (imm << 12)
     else if (specinst_i == JAL) alu_A_o = pc_i;
-    else if (specinst_i == JALR) alu_A_o = rs1_i;
+    else if (specinst_i == JALR) alu_A_o = pc_i;
     else alu_A_o = 0;
 
     /// drive alu_B_o
@@ -34,8 +34,8 @@ module EXU #(
       if (specinst_i == STORE) alu_B_o = imme_i;
       else alu_B_o = rs2_i;
     end else if (specinst_i == LUI) alu_B_o = imme_i;
-    else if (specinst_i == JAL) alu_B_o = imme_i;  // PC + 4
-    else if (specinst_i == JALR) alu_B_o = imme_i;  // PC + 4
+    else if (specinst_i == JAL) alu_B_o = 4;  // PC + 4
+    else if (specinst_i == JALR) alu_B_o = 4;  // PC + 4
     else alu_B_o = imme_i;
   end
 
