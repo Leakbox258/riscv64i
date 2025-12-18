@@ -22,11 +22,11 @@ module PCN #(
   always_comb begin
     take_branch = 1'b0;
     case (detail_i)
-      B_EQ: take_branch = (cmp_i == 0);
-      B_NE: take_branch = (cmp_i != 0);
-      B_LT: take_branch = (cmp_i == 1);
+      B_EQ: take_branch = (cmp_i == 1);  // ALU_EQ
+      B_NE: take_branch = (cmp_i == 0);
+      B_LT: take_branch = (cmp_i == 1);  // ALU_SLT
       B_GE: take_branch = (cmp_i == 0);
-      B_LTU: take_branch = (cmp_i == 1);
+      B_LTU: take_branch = (cmp_i == 1);  // ALU_SLTU
       B_GEU: take_branch = (cmp_i == 0);
       default: take_branch = 1'b0;
     endcase

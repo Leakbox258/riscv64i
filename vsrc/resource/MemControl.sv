@@ -147,24 +147,24 @@ module MemControl
   logic [RAM_SIZE-1:0] pc;
   assign pc = pc_i[RAM_SIZE-1:0];
 
-  always_ff @(posedge clk) begin
-    if (pc[1:0] == 2'b0) begin
-      illegal_access_o <= 0;
-      inst_o <= {ram_[pc+3], ram_[pc+2], ram_[pc+1], ram_[pc]};
-    end else begin
-      illegal_access_o <= 1;  // unalign
-      inst_o <= 0;
-    end
-  end
-
-  //   always_comb begin
+  //   always_ff @(posedge clk) begin
   //     if (pc[1:0] == 2'b0) begin
-  //       illegal_access_o = 0;
-  //       inst_o = {ram_[pc+3], ram_[pc+2], ram_[pc+1], ram_[pc]};
+  //       illegal_access_o <= 0;
+  //       inst_o <= {ram_[pc+3], ram_[pc+2], ram_[pc+1], ram_[pc]};
   //     end else begin
-  //       illegal_access_o = 1;  // unalign
-  //       inst_o = 0;
+  //       illegal_access_o <= 1;  // unalign
+  //       inst_o <= 0;
   //     end
   //   end
+
+  always_comb begin
+    if (pc[1:0] == 2'b0) begin
+      illegal_access_o = 0;
+      inst_o = {ram_[pc+3], ram_[pc+2], ram_[pc+1], ram_[pc]};
+    end else begin
+      illegal_access_o = 1;  // unalign
+      inst_o = 0;
+    end
+  end
 
 endmodule

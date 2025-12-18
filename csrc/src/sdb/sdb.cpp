@@ -263,8 +263,11 @@ static int cmd_b(char *args) {
 }
 
 extern std::set<paddr_t> cpu_watch_points;
+extern std::set<unsigned> cpu_reg_watch_points;
 
 static int cmd_w_impl(paddr_t addr);
+
+static int cmd_wreg_impl(unsigned reg);
 
 static int cmd_w(char *args) {
   char *expr_s = strtok(NULL, " ");
@@ -274,15 +277,29 @@ static int cmd_w(char *args) {
     return 1;
   }
 
-  char *nptr_expr = NULL;
-  paddr_t expr = strtol(expr_s, &nptr_expr, 16);
+  if (expr_s[0] == 'x') {
+    char *nptr_reg = NULL;
+    unsigned reg = strtol(expr_s + 1, &nptr_reg, 10);
 
-  if (nptr_expr != expr_s + strlen(expr_s)) {
-    Log("Invalid expr of cmd_w");
-    return 2;
+    if (nptr_reg != expr_s + strlen(expr_s) || reg > 31) {
+      Log("Invalid register of cmd_w");
+      return 2;
+    }
+
+    cmd_wreg_impl(reg);
+
+  } else {
+    char *nptr_expr = NULL;
+    paddr_t expr = strtol(expr_s, &nptr_expr, 16);
+
+    if (nptr_expr != expr_s + strlen(expr_s)) {
+      Log("Invalid expr of cmd_w");
+      return 2;
+    }
+
+    cmd_w_impl(expr);
   }
 
-  cmd_w_impl(expr);
   return 0;
 }
 
@@ -421,28 +438,27 @@ static int cmd_pipe_impl(char *reg) {
   if (!strcmp(reg, "ifid_in") || !strcmp(reg, "ifid-in")) {
     FLUSH_IFID_IN;
 
-    printf("ifid_in: \n\tPC: 0x%08x |\tInst: %08x", (uint32_t)ifid_in.PC,
-           ifid_in.Inst);
+    printf("ifid_in: \n\tPC: 0x%08x", (uint32_t)ifid_in.PC);
   } else if (!strcmp(reg, "ifid_out") || !strcmp(reg, "ifid-out")) {
     FLUSH_IFID_OUT;
 
-    printf("ifid_out: \n\tPC: 0x%08x |\tInst: %08x", (uint32_t)ifid_in.PC,
-           ifid_in.Inst);
+    printf("ifid_out: \n\tPC: 0x%08x", (uint32_t)ifid_out.PC);
   } else if (!strcmp(reg, "idex_in") || !strcmp(reg, "idex-in")) {
     FLUSH_IDEX_IN;
 
-    printf(
-        "idex_in: \n\tPC: 0x%08x |\tRd: %s |\tRs1: %s 0x%lx |\tRs2: %s 0x%lx |",
-        (uint32_t)idex_in.PC, regs[idex_in.RegIdx[2]], regs[idex_in.RegIdx[0]],
-        idex_in.RegData[0], regs[idex_in.RegIdx[1]], idex_in.RegData[1]);
+    printf("idex_in: \n\tPC: 0x%08x |\tRd: %s |\tRs1: %s 0x%lx |\tRs2: %s "
+           "0x%lx |En: %d",
+           (uint32_t)idex_in.PC, regs[idex_in.RegIdx[2]],
+           regs[idex_in.RegIdx[0]], idex_in.RegData[0], regs[idex_in.RegIdx[1]],
+           idex_in.RegData[1], idex_in.Enable);
   } else if (!strcmp(reg, "idex_out") || !strcmp(reg, "idex-out")) {
     FLUSH_IDEX_OUT;
 
     printf("idex_out: \n\tPC: 0x%08x |\tRd: %s |\tRs1: %s 0x%lx |\tRs2: %s "
-           "0x%lx |",
+           "0x%lx |En: %d",
            (uint32_t)idex_out.PC, regs[idex_out.RegIdx[2]],
            regs[idex_out.RegIdx[0]], idex_out.RegData[0],
-           regs[idex_out.RegIdx[1]], idex_out.RegData[1]);
+           regs[idex_out.RegIdx[1]], idex_out.RegData[1], idex_out.Enable);
   } else if (!strcmp(reg, "exmem_in") || !strcmp(reg, "exmem-in")) {
     FLUSH_EXMEM_IN;
 
@@ -497,6 +513,20 @@ static int cmd_w_impl(paddr_t expr) {
   cpu_watch_points.insert(expr);
 
   Log("WatchPoint on 0x%08lx", expr);
+
+  return 0;
+}
+
+static int cmd_wreg_impl(unsigned reg) {
+
+  if (cpu_reg_watch_points.find(reg) != cpu_reg_watch_points.end()) {
+    Log("Already has a watch point on x%0u", reg);
+    return 3;
+  }
+
+  cpu_reg_watch_points.insert(reg);
+
+  Log("WatchPoint on x%0u", reg);
 
   return 0;
 }
