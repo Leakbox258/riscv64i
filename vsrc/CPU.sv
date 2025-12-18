@@ -78,7 +78,7 @@ module CPU
   assign idex_in.RegData[IDX_RS2] = GprReadRs2;
 
   /* (* keep = 1 *) */ wire [INST_WIDTH-1:0] inst_IDU;
-  assign inst_IDU = inst_if;
+  assign inst_IDU = ifid_out.Inst;
 
   IDU idu (
       .inst_i(inst_IDU),
@@ -117,11 +117,8 @@ module CPU
         memwb_out.WB_Data, memwb_out.Reg_WEn, memwb_out.Mem_REn, memdata_mem);
   end
 
-  /* (* keep = 1 *) */ wire [INST_WIDTH-1:0] inst_IMMGen;
-  assign inst_IMMGen = inst_if;
-
   IMMGen immgen (
-      .inst_i(inst_IMMGen),
+      .inst_i(inst_IDU),
       .imme_o(idex_in.Imm)
   );
 
@@ -242,6 +239,8 @@ module CPU
         "ALU: A: 0x%0h, B: 0x%0h, C: 0x%0h, Rs1: 0x%0h, Rs2: 0x%0h, Imm: 0x%0h, ForwardFromMem: %s, ForwardFromWB: %s",
         alu_A, alu_B, alu_C, idex_out.RegData[IDX_RS1], idex_out.RegData[IDX_RS2], idex_out.Imm,
         Forward_B == MEM_TO_ALU ? "true" : "false", Forward_B == WB_TO_ALU ? " true" : "false");
+    $strobe("BRJL: pc: 0x%08h, rs1: 0x%0h, Imm: 0x%0h, taken: 0x%08h, nonetaken: 0x%08h", pc,
+            Rs1_BrJl, Imm_EXU, taken, none_taken);
   end
 
   PCN Pcn (

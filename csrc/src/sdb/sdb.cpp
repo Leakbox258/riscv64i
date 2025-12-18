@@ -447,18 +447,19 @@ static int cmd_pipe_impl(char *reg) {
     FLUSH_IDEX_IN;
 
     printf("idex_in: \n\tPC: 0x%08x |\tRd: %s |\tRs1: %s 0x%lx |\tRs2: %s "
-           "0x%lx |En: %d",
+           "0x%lx|\tImm: 0x%0lx|\tEn: %d",
            (uint32_t)idex_in.PC, regs[idex_in.RegIdx[2]],
            regs[idex_in.RegIdx[0]], idex_in.RegData[0], regs[idex_in.RegIdx[1]],
-           idex_in.RegData[1], idex_in.Enable);
+           idex_in.RegData[1], idex_in.Imm, idex_in.Enable);
   } else if (!strcmp(reg, "idex_out") || !strcmp(reg, "idex-out")) {
     FLUSH_IDEX_OUT;
 
     printf("idex_out: \n\tPC: 0x%08x |\tRd: %s |\tRs1: %s 0x%lx |\tRs2: %s "
-           "0x%lx |En: %d",
+           "0x%lx|\tImm: 0x%0lx|\tEn: %d",
            (uint32_t)idex_out.PC, regs[idex_out.RegIdx[2]],
            regs[idex_out.RegIdx[0]], idex_out.RegData[0],
-           regs[idex_out.RegIdx[1]], idex_out.RegData[1], idex_out.Enable);
+           regs[idex_out.RegIdx[1]], idex_out.RegData[1], idex_out.Imm,
+           idex_out.Enable);
   } else if (!strcmp(reg, "exmem_in") || !strcmp(reg, "exmem-in")) {
     FLUSH_EXMEM_IN;
 
