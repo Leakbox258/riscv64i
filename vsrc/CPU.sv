@@ -15,51 +15,95 @@ module CPU
   logic [31:0] cycle;
 
   // =======================================================================
-  // 1. Instruction Fetch
+  // 1. Instruction Fetch 1
   // =======================================================================
-  logic [INST_WIDTH-1:0] inst_if;
-  logic [INST_WIDTH-1:0] data_i;
-  /* (* keep = 1 *) */ logic [DATA_WIDTH-1:0] mem_addr_exmem;
-  /* (* keep = 1 *) */ wire [DATA_WIDTH-1:0] pc_addr_if = pc_i;
 
-  /* verilator public_module */
+  logic [INST_WIDTH-1:0] inst_raw;
+  logic [INST_WIDTH-1:0] inst_safe;
+
+  /* (* keep = 1 *) */ logic [DATA_WIDTH-1:0] mem_addr_exmem;
+
+  logic [DATA_WIDTH-1:0] pc_delayed;
+  always_ff @(posedge clk_i) begin
+    if (rst_i) begin
+      pc_delayed <= 0;
+    end else if (!stall) begin
+      pc_delayed <= pc_i;
+    end
+  end
+
+  logic flush_persistence;
+
+  always_ff @(posedge clk_i) begin
+    if (rst_i) begin
+      flush_persistence <= 1'b0;
+    end else begin
+      if (prediction_failed) begin
+        flush_persistence <= 1'b1;
+      end else if (!stall) begin
+        flush_persistence <= 1'b0;
+      end
+    end
+  end
+
+  logic stall_persistence;
+  logic [INST_WIDTH-1:0] inst_delay;
+  always_ff @(posedge clk_i) begin
+    if (rst_i) begin
+      stall_persistence <= 1'b0;
+    end else begin
+      stall_persistence <= stall;
+
+    end
+  end
+  always_ff @(posedge clk_i) begin
+    if (rst_i) begin
+      inst_delay <= 0;
+    end else begin
+      inst_delay <= inst_safe;
+    end
+  end
+
   MemControl ram (
       .clk(clk_i),
       .addr_i(mem_addr_exmem),
-      .pc_i(pc_addr_if),
+      .pc_i(pc_i),
       .enwr_i(exmem_out.Mem_REn ? 1'b1 : 1'b0),
       .En_i(exmem_out.Mem_REn | exmem_out.Mem_WEn),
       .data_i(exmem_out.Store_Data),
       .wid_i(exmem_out.Detail),
 
       .data_o(memdata_mem),
-      .inst_o(data_i),
+      .inst_o(inst_raw),
       .illegal_access_o(exception[FetchError]),
       .unalign_access(exception[MemAccessError])
   );
 
+  // replace failed inst with nop
+  assign inst_safe = flush_persistence ? 32'h00000013 : inst_raw;
+
+  logic [INST_WIDTH-1:0] inst_final;
   IFU ifu (
-      .data_i(data_i),
-      .inst_o(inst_if)
+      .data_i(inst_safe),
+      .inst_o(inst_final)
   );
-
+  // =======================================================================
+  // 2. Instruction Fetch 2
+  // =======================================================================
   IFID_Pipe_t ifid_in, ifid_out;
-  assign ifid_in.PC = pc_i;
-  assign ifid_in.Inst = inst_if;
-  assign ifid_in.enable = ifid_in_en;
 
-  logic ifid_in_en;
-  always_ff @(posedge clk_i) begin
-    if (rst_i) begin
-      ifid_in_en <= 1'b0;
-    end else begin
-      ifid_in_en <= 1'b1;
-    end
-  end
+  assign ifid_in.PC   = flush_persistence ? 0 : pc_delayed;
+  assign ifid_in.Inst = stall_persistence ? inst_delay : inst_final;
+
+  logic fetch_error_safe;
+  assign fetch_error_safe = flush_persistence ? 1'b0 : exception[FetchError];
+
+  assign ifid_in.enable   = !rst_i & !flush_persistence;
 
   IFID ifid_reg (
-      .clk_i  (clk_i),
-      .rst_i  (rst_i),
+      .clk_i(clk_i),
+      .rst_i(rst_i),
+
       .flush_i(flush_if),
       .stall_i(stall),
 
@@ -68,7 +112,7 @@ module CPU
   );
 
   // =======================================================================
-  // 2. ID
+  // 3. ID
   // =======================================================================
   IDEX_Pipe_t idex_in, idex_out;
 
@@ -78,7 +122,7 @@ module CPU
   assign idex_in.RegData[IDX_RS2] = GprReadRs2;
 
   /* (* keep = 1 *) */ wire [INST_WIDTH-1:0] inst_IDU;
-  assign inst_IDU = ifid_out.Inst;
+  assign inst_IDU = ifid_out.Inst;  /// !
 
   IDU idu (
       .inst_i(inst_IDU),
@@ -137,7 +181,7 @@ module CPU
   );
 
   // =======================================================================
-  // 3. EX
+  // 4. EX
   // =======================================================================
   logic [DATA_WIDTH-1:0] alu_A, alu_B;
   logic [DATA_WIDTH-1:0] alu_C;
@@ -278,7 +322,7 @@ module CPU
   );
 
   // =======================================================================
-  // 4. MEM
+  // 5. MEM
   // =======================================================================
   assign mem_addr_exmem = exmem_out.ALU_Result;
   wire [DATA_WIDTH-1:0] memdata_mem;
@@ -312,7 +356,7 @@ module CPU
   );
 
   // =======================================================================
-  // WB
+  // 6. WB
   // =======================================================================
 
   wire [DATA_WIDTH-1:0] WB_Data;
@@ -324,7 +368,7 @@ module CPU
   always_ff @(posedge clk_i) begin
     if (rst_i) exceptions_o <= 8'b0;
     else begin
-      exceptions_o[FetchError] <= exception[FetchError] & ifid_in.enable;
+      exceptions_o[FetchError] <= exception[FetchError] & ifid_in.enable & !fetch_error_safe;
       exceptions_o[DecodeError] <= exception[DecodeError] & idex_in.enable;
       exceptions_o[MemAccessError] <= exception[MemAccessError] & exmem_out.enable & (exmem_out.Mem_WEn || exmem_out.Mem_REn);
       exceptions_o[EBREAK:ECALL] <= exception[EBREAK:ECALL] & {2{exmem_in.enable}};

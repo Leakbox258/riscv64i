@@ -438,11 +438,13 @@ static int cmd_pipe_impl(char *reg) {
   if (!strcmp(reg, "ifid_in") || !strcmp(reg, "ifid-in")) {
     FLUSH_IFID_IN;
 
-    printf("ifid_in: \n\tPC: 0x%08x", (uint32_t)ifid_in.PC);
+    printf("ifid_in: \n\tPC: 0x%08x, Inst: %08x", (uint32_t)ifid_in.PC,
+           ifid_in.Inst);
   } else if (!strcmp(reg, "ifid_out") || !strcmp(reg, "ifid-out")) {
     FLUSH_IFID_OUT;
 
-    printf("ifid_out: \n\tPC: 0x%08x", (uint32_t)ifid_out.PC);
+    printf("ifid_out: \n\tPC: 0x%08x, Inst: %08x", (uint32_t)ifid_out.PC,
+           ifid_out.Inst);
   } else if (!strcmp(reg, "idex_in") || !strcmp(reg, "idex-in")) {
     FLUSH_IDEX_IN;
 
