@@ -147,10 +147,11 @@ module CPU
 
       .rd_i(memwb_out.RD_Addr),  // WB
       .write_enable_i(memwb_out.Reg_WEn),  // WB
-      .data_i(WB_Data),  // WB (critical path)
+      .data_i(WB_Data),
 
       .rs1_data_o(GprReadRs1),
       .rs2_data_o(GprReadRs2)
+
   );
 
   /// Display
@@ -190,7 +191,7 @@ module CPU
   /* (* keep = 1 *) */wire  [DATA_WIDTH-1:0] ALU_Result;  // result from last cycle
   /* (* keep = 1 *) */wire  [DATA_WIDTH-1:0] WB_Data_ALU;
   assign ALU_Result  = exmem_out.ALU_Result;
-  assign WB_Data_ALU = WB_Data;
+  assign WB_Data_ALU = WB_Data;  // critical path
 
   always_comb begin
     case (Forward_A)
@@ -340,11 +341,13 @@ module CPU
   MEMWB_Pipe_In_t  memwb_in;
   MEMWB_Pipe_Out_t memwb_out;
 
-  assign memwb_in.PC      = exmem_out.PC;
-  assign memwb_in.PC_Next = exmem_out.PC_Next;
-  assign memwb_in.RD_Addr = exmem_out.RegIdx[IDX_RD];
-  assign memwb_in.Reg_WEn = exmem_out.Reg_WEn;
-  assign memwb_in.enable  = exmem_out.enable;
+  assign memwb_in.PC       = exmem_out.PC;
+  assign memwb_in.PC_Next  = exmem_out.PC_Next;
+  assign memwb_in.RD_Addr  = exmem_out.RegIdx[IDX_RD];
+  assign memwb_in.Mem_Addr = mem_addr_exmem;
+  assign memwb_in.wid      = exmem_out.Detail;
+  assign memwb_in.Reg_WEn  = exmem_out.Reg_WEn;
+  assign memwb_in.enable   = exmem_out.enable;
 
   MEMWB memwb_reg (
       .clk_i  (clk_i),
@@ -359,8 +362,17 @@ module CPU
   // 6. WB
   // =======================================================================
 
+  wire [DATA_WIDTH-1:0] mem_read;
+  LD ld (
+      .data_i(memdata_mem),
+      .wid_i(memwb_out.wid),
+      .byteena_i(memwb_out.Mem_Addr[2:0]),
+
+      .data_o(mem_read)
+  );
+
   wire [DATA_WIDTH-1:0] WB_Data;
-  assign WB_Data = memwb_out.Mem_REn ? memdata_mem : memwb_out.WB_Data;
+  assign WB_Data = memwb_out.Mem_REn ? mem_read : memwb_out.WB_Data;
 
   // =======================================================================
   // Exceptions
@@ -445,9 +457,9 @@ module CPU
   // Flush
   // ======================================================================= 
   logic flush_if, flush_id;
-  /* (* keep = 1 *) */ wire [DATA_WIDTH-1:0] PC_FLUSH, PCN_FLUSH;
-  assign PC_FLUSH  = exmem_in.PC;
-  assign PCN_FLUSH = exmem_in.PC_Next;
+  /* (* keep = 1 *) */ wire [DATA_WIDTH-1:0] PCP_FLUSH, PCN_FLUSH;
+  assign PCP_FLUSH = none_taken;
+  assign PCN_FLUSH = taken;
   wire flush1, flush2;
 
   assign flush_id = flush1 | prediction_failed;
@@ -455,7 +467,7 @@ module CPU
 
   Flush Flush (
       .exception(exception),
-      .pc(PC_FLUSH),
+      .pcp(PCP_FLUSH),
       .pcn(PCN_FLUSH),
       .enable(exmem_in.enable),
 
@@ -489,7 +501,6 @@ module CPU
     end
 
     new_pc_o = next_pc;
-
   end
 
   /// Display

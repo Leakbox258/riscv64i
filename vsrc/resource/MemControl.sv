@@ -17,6 +17,7 @@ module MemControl
     output logic illegal_access_o
 
 );
+
   // FPGA IP Core
   RAM ram_ (
       .clock(clk),
@@ -46,38 +47,59 @@ module MemControl
 
   logic [13:0] instAddr;
   logic [INST_WIDTH-1:0] instWrite = 0;
-  logic instWEn = 0, instREn;
+  logic instWEn = 0, instREn = 1;
   logic [INST_WIDTH-1:0] instRead;  // output
 
   parameter MEM_B = 3'b000, MEM_H = 3'b001, MEM_W = 3'b010,
             MEM_D = 3'b011, MEM_BU = 3'b100, MEM_HU = 3'b101 , MEM_WU = 3'b110;
   parameter Write = 1'b0, Read = 1'b1;
 
-  assign inst_o = instRead;
+  always_comb begin
+
+    dataAddr   = addr_i[IPRAM_SIZE-1:3];  // select DWORD
+    dataByteEn = 0;
+    dataWrite  = 0;
+
+    if (enwr_i == Write) begin
+      case (wid_i)
+        MEM_B: begin
+          dataByteEn = 8'b1 << addr_i[2:0];
+          dataWrite  = {8{data_i[7:0]}};
+        end
+        MEM_H: begin
+          dataByteEn = 8'b11 << addr_i[2:0];
+          dataWrite  = {4{data_i[15:0]}};
+        end
+        MEM_W: begin
+          dataByteEn = 8'h0f << addr_i[2:0];
+          dataWrite  = {2{data_i[31:0]}};
+        end
+        MEM_D: begin
+          dataByteEn = 8'hff;
+          dataWrite  = data_i;
+        end
+        MEM_BU: begin  // read-only
+          dataByteEn = 8'b1 << addr_i[2:0];
+          dataWrite  = 0;
+        end
+        MEM_HU: begin  // read-only
+          dataByteEn = 8'b11 << addr_i[2:0];
+          dataWrite  = 0;
+        end
+        MEM_WU: begin  // read-only
+          dataByteEn = 8'h0f << addr_i[2:0];
+          dataWrite  = 0;
+        end
+        default: ;
+      endcase
+    end
+  end
+
+  logic [DATA_WIDTH-1:0] intermedia;
 
   always_comb begin
     dataWEn = 0;
     dataREn = 0;
-    dataByteEn = 0;
-    data_o = 0;
-
-    dataAddr = addr_i[IPRAM_SIZE-1:3];  // select DWORD
-
-    case (wid_i)
-      MEM_B: begin
-        dataByteEn = 8'b1 << addr_i[2:0];
-      end
-      MEM_H: begin
-        dataByteEn = 8'b11 << addr_i[2:0];
-      end
-      MEM_W: begin
-        dataByteEn = 8'h0f << addr_i[2:0];
-      end
-      MEM_D: begin
-        dataByteEn = 8'hff;
-      end
-      default: ;
-    endcase
 
     if (enwr_i == Write && En_i) begin
       dataWEn = 1;
@@ -85,35 +107,52 @@ module MemControl
 
     if (enwr_i == Read && En_i) begin
       dataREn = 1;
+    end
+  end
 
+  always_comb begin
+    intermedia = 0;
+    data_o = 0;
+
+    if (enwr_i == Read && En_i) begin
       case (wid_i)
         MEM_B: begin
-          data_o = sext_8(dataRead[7:0]);
+          intermedia = dataRead >> (addr_i[2:0] * 8);
+          data_o = sext_8(intermedia[7:0]);
         end
         MEM_H: begin
-          data_o = sext_16(dataRead[15:0]);
+          intermedia = dataRead >> (addr_i[2:0] * 8);
+          data_o = sext_16(intermedia[15:0]);
         end
         MEM_W: begin
-          data_o = sext_32(dataRead[31:0]);
+          intermedia = dataRead >> (addr_i[2:0] * 8);
+          data_o = sext_32(intermedia[31:0]);
         end
         MEM_D: begin
           data_o = dataRead;
         end
         MEM_BU: begin
-          data_o = zext_8(dataRead[7:0]);
+          intermedia = dataRead >> (addr_i[2:0] * 8);
+          data_o = zext_8(intermedia[7:0]);
         end
         MEM_HU: begin
-          data_o = zext_16(dataRead[15:0]);
+          intermedia = dataRead >> (addr_i[2:0] * 8);
+          data_o = zext_16(intermedia[15:0]);
         end
         MEM_WU: begin
-          data_o = zext_32(dataRead[31:0]);
+          intermedia = dataRead >> (addr_i[2:0] * 8);
+          data_o = zext_32(intermedia[31:0]);
         end
-        default: begin
-          data_o = 0;
-        end
+        default: ;
       endcase
     end
 
+  end
+
+  always_comb begin
+    instAddr = pc_i[IPRAM_SIZE-1:2];
+    illegal_access_o = pc_i[1:0] != 2'b0;
+    inst_o = instRead;  // delayed
   end
 
   /// check Execptions
@@ -152,26 +191,5 @@ module MemControl
       endcase
     end
   end
-
-  //   /// Read Instrutions
-  //   always_ff @(posedge clk) begin
-  //     if (pc_i[1:0] == 2'b0) begin
-  //       illegal_access_o <= 0;
-  //       inst_o <= {ram_[pc_i+3], ram_[pc_i+2], ram_[pc_i+1], ram_[pc_i]};
-  //     end else begin
-  //       illegal_access_o <= 1;  // unalign
-  //       inst_o <= 0;
-  //     end
-  //   end
-
-  //   always_comb begin
-  //     if (pc_i[1:0] == 2'b0) begin
-  //       illegal_access_o = 0;
-  //       inst_o = {ram_[pc_i+3], ram_[pc_i+2], ram_[pc_i+1], ram_[pc_i]};
-  //     end else begin
-  //       illegal_access_o = 1;  // unalign
-  //       inst_o = 0;
-  //     end
-  //   end
 
 endmodule

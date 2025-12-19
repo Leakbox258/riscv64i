@@ -1,17 +1,18 @@
 module riscv64i #(
-    DATA_WIDTH = 64
+    DATA_WIDTH = 64,
+    INST_WIDTH = 32
 ) (
     input clk,
     input rst,
 
-    output [7:0] seg0,
-    output [7:0] seg1,
-    output [7:0] seg2,
-    output [7:0] seg3,
-    output [7:0] seg4,
-    output [7:0] seg5,
-    output [7:0] seg6,
-    output [7:0] seg7
+    output [6:0] seg0,
+    output [6:0] seg1,
+    output [6:0] seg2,
+    output [6:0] seg3,
+    output [6:0] seg4,
+    output [6:0] seg5,
+    output [6:0] seg6,
+    output [6:0] seg7
 );
   /* Interrupt code, which will display on the segs with 3 horizon lines */
 
@@ -28,7 +29,7 @@ module riscv64i #(
   PC Pc (
       .clk_i(clk),
       .ewrite_i(state == NORMAL),
-      .rst_i(rst),
+      .rst_i(~rst),
       .data_i(new_pc),
       .pc_o(pc)
   );
@@ -36,30 +37,29 @@ module riscv64i #(
   /* verilator public_module */
   CPU Cpu (
       .clk_i(clk),
-      .rst_i(rst),
-      .pc_i(pc),
+      .rst_i(~rst),
+      .pc_i (pc),
+
       .new_pc_o(new_pc),
       .exceptions_o(exception)
   );
 
   wire [7:0] segs[7:0];
-  Display #(DATA_WIDTH) display (
+  Display display (
       .clk_i(clk),
-      .rst_i(rst),
-      .pc_i(pc),
-      .nstate_i(nstate),
-      .interrupts_i(exception),
+      .rst_i(~rst),
+      .display_i(pc[INST_WIDTH-1:0]),
       .segs_reg(segs)
   );
 
-  assign seg0 = segs[0];
-  assign seg1 = segs[1];
-  assign seg2 = segs[2];
-  assign seg3 = segs[3];
-  assign seg4 = segs[4];
-  assign seg5 = segs[5];
-  assign seg6 = segs[6];
-  assign seg7 = segs[7];
+  assign seg0 = segs[0][6:0];
+  assign seg1 = segs[1][6:0];
+  assign seg2 = segs[2][6:0];
+  assign seg3 = segs[3][6:0];
+  assign seg4 = segs[4][6:0];
+  assign seg5 = segs[5][6:0];
+  assign seg6 = segs[6][6:0];
+  assign seg7 = segs[7][6:0];
 
   /* monitor state */
   parameter RST = 0, NORMAL = 1, HALT = 2, ERROR = 3;
@@ -86,7 +86,7 @@ module riscv64i #(
 
 
   always_ff @(posedge clk) begin
-    if (rst) begin
+    if (~rst) begin
       state <= RST;  // meanwhile reset PC to 0x80000000
     end else begin
       state <= nstate;

@@ -31,6 +31,7 @@ run: insert-arg
 VERILOG_DATA_WIDTH ?= 1
 debug: insert-arg
 	@echo "build $(IMAGE).bin for debug"
+	cp $(IMAGE).bin $(BUILD_DIR)/app.bin
 	objcopy -I binary -O verilog --verilog-data-width=$(VERILOG_DATA_WIDTH) $(IMAGE).bin $(BUILD_DIR)/app.hex
 # 	xxd -p -c 4 $(IMAGE).bin | sed 's/\(..\)\(..\)\(..\)\(..\)/\4\3\2\1/' > $(BUILD_DIR)/app.hex
 

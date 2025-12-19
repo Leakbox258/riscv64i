@@ -12,3 +12,7 @@ obj_dir
 build
 .app.bin
 Makefile_Debug.dummy
+bind_pin.txt
+app.bin
+app.mif
+port2pin.txt

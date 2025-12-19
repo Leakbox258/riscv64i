@@ -48,10 +48,10 @@ package pipeline_pkg;
     logic [DATA_WIDTH-1:0]   PC_Next;
     logic [DATA_WIDTH-1:0]   ALU_Result;
     logic [DATA_WIDTH-1:0]   Store_Data;
-    logic [2:0][RF_SIZE-1:0] RegIdx;      // 20
+    logic [2:0][RF_SIZE-1:0] RegIdx;
     logic                    Reg_WEn;
-    logic                    Mem_REn;     // 5
-    logic                    Mem_WEn;     // 4
+    logic                    Mem_REn;
+    logic                    Mem_WEn;
     logic [2:0]              Detail;
     logic                    enable;
   } EXMEM_Pipe_t  /* verilator public */;
@@ -61,18 +61,23 @@ package pipeline_pkg;
     logic [DATA_WIDTH-1:0] PC;
     logic [DATA_WIDTH-1:0] PC_Next;
     logic [RF_SIZE-1:0]    RD_Addr;
-    logic                  Reg_WEn;
-    logic                  enable;
+    logic [DATA_WIDTH-1:0] Mem_Addr;
+    logic Reg_WEn;
+    logic enable;
+
+    logic [2:0] wid;
   } MEMWB_Pipe_In_t  /* verilator public */;
 
   typedef struct packed {
     logic [DATA_WIDTH-1:0] PC;
     logic [DATA_WIDTH-1:0] PC_Next;
     logic [RF_SIZE-1:0]    RD_Addr;
+    logic [DATA_WIDTH-1:0] Mem_Addr;
     logic                  Reg_WEn;
     logic                  enable;
 
     logic                  Mem_REn;
+    logic [2:0]            wid;
     logic [DATA_WIDTH-1:0] WB_Data;
   } MEMWB_Pipe_Out_t  /* verilator public */;
 
