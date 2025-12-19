@@ -7,8 +7,8 @@ module Flush
     DecodeError = 1
 ) (
     input [7:0] exception,
-    input [DATA_WIDTH-1:0] pc,
-    input [DATA_WIDTH-1:0] pcn,
+    input [DATA_WIDTH-1:0] pcp,  // prediction
+    input [DATA_WIDTH-1:0] pcn,  // next
     input enable,
 
     output logic prediction_failed,
@@ -18,6 +18,6 @@ module Flush
 
   assign flush_id = exception[DecodeError] & enable;
   assign flush_if = (exception[FetchError] | exception[DecodeError]) & enable;
-  assign prediction_failed = (pc + 4 != pcn) & enable;
+  assign prediction_failed = (pcp != pcn) & enable;
 
 endmodule
