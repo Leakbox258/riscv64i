@@ -83,6 +83,9 @@ module ALU
         intermedia = sra_32(A_i[DATA_WIDTH/2-1:0], B_i[4:0]);
         C_o = sext_32(intermedia);
       end
+      default: begin
+        C_o = 0;
+      end
     endcase
   end
 
