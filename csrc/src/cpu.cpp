@@ -16,6 +16,7 @@ MEMWB_OUT_t memwb_out;
 
 std::set<paddr_t> cpu_break_points;
 std::set<paddr_t> cpu_watch_points;
+std::set<unsigned> cpu_reg_watch_points;
 
 static uint64_t g_timer = 0; // unit: us
 uint64_t g_nr_guest_inst = 0;
@@ -54,16 +55,17 @@ void cpu_exec(unsigned i) {
   for (unsigned ii = 0; ii < i; ++ii) {
     cpu_single_cycle();
 
+    FLUSH_EXMEM_OUT;
+    FLUSH_MEMWB_OUT;
+
+    /// Check Break Point
     if (cpu_break_points.find((paddr_t)CPU_PC) != cpu_break_points.end()) {
 
       Log("monitor: Hit BreakPoint at 0x%08lx", (paddr_t)CPU_PC);
       return;
     }
 
-    if (!cpu_watch_points.empty()) {
-      FLUSH_EXMEM_OUT;
-    }
-
+    /// Memory Watch Point
     if (std::find_if(cpu_watch_points.begin(), cpu_watch_points.end(),
                      [&](const auto &wp) {
                        return wp >= (paddr_t)exmem_out.ALU_Result &&
@@ -78,6 +80,15 @@ void cpu_exec(unsigned i) {
             (paddr_t)exmem_out.ALU_Result);
         return;
       }
+    }
+
+    /// Register Watch Point
+    if (cpu_reg_watch_points.find((unsigned)memwb_out.RD_Addr) !=
+            cpu_reg_watch_points.end() &&
+        memwb_out.Reg_WEn) {
+
+      Log("monitor: Hit WatchPoint on register %s", regs[memwb_out.RD_Addr]);
+      return;
     }
   }
 }

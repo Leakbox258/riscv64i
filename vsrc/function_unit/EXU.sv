@@ -31,17 +31,12 @@ module EXU #(
 
     /// drive alu_B_o
     if (ers2_i) begin
-      if (specinst_i == STORE) alu_B_o = imme_i;
+      if (specinst_i == STORE) alu_B_o = imme_i;  // offset
       else alu_B_o = rs2_i;
     end else if (specinst_i == LUI) alu_B_o = imme_i;
     else if (specinst_i == JAL) alu_B_o = 4;  // PC + 4
     else if (specinst_i == JALR) alu_B_o = 4;  // PC + 4
     else alu_B_o = imme_i;
   end
-
-  //   initial begin
-  //     $monitor("T=%0t | IsJal: %d | IsJalr: %d | last_imme: %h | cur PC: %h | next PC: %h", $time,
-  //              jal_i, jalr_i, imme_i, pc_i, new_pc_o);
-  //   end
 
 endmodule

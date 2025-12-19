@@ -1,4 +1,9 @@
 int main() {
-  unsigned c = 0xfffffffc;
-  return (int)c >> 4;
+  int n = 0;
+
+  for (int i = 0; i < 4; ++i) {
+    n += i;
+  }
+
+  return n;
 }

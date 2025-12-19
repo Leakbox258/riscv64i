@@ -18,11 +18,11 @@ module Stall
 
     if (EnMemR_ex && EnRd_ex && RdIdx_ex != 0) begin
 
-      if ((RdIdx_ex == Rs1Idx_id && Rs1Idx_id != 0)) begin
+      if ((RdIdx_ex == Rs1Idx_id)) begin
         stall = 1'b1;
       end
 
-      if ((RdIdx_ex == Rs2Idx_id && Rs2Idx_id != 0)) begin
+      if ((RdIdx_ex == Rs2Idx_id)) begin
         stall = 1'b1;
       end
     end

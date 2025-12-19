@@ -22,18 +22,25 @@ extern Vriscv64i top;
 
 #define IFID_IN top.riscv64i->Cpu->__PVT__ifid_in
 #define FLUSH_IFID_IN ifid_in.set(IFID_IN)
+
 #define IFID_OUT top.riscv64i->Cpu->__PVT__ifid_out
 #define FLUSH_IFID_OUT ifid_out.set(IFID_OUT)
+
 #define IDEX_IN top.riscv64i->Cpu->__PVT__idex_in
 #define FLUSH_IDEX_IN idex_in.set(IDEX_IN)
+
 #define IDEX_OUT top.riscv64i->Cpu->__PVT__idex_out
 #define FLUSH_IDEX_OUT idex_out.set(IDEX_OUT)
+
 #define EXMEM_IN top.riscv64i->Cpu->__PVT__exmem_in
 #define FLUSH_EXMEM_IN exmem_in.set(EXMEM_IN)
+
 #define EXMEM_OUT top.riscv64i->Cpu->__PVT__exmem_out
 #define FLUSH_EXMEM_OUT exmem_out.set(EXMEM_OUT)
+
 #define MEMWB_IN top.riscv64i->Cpu->__PVT__memwb_in
 #define FLUSH_MEMWB_IN memwb_in.set(MEMWB_IN)
+
 #define MEMWB_OUT top.riscv64i->Cpu->__PVT__memwb_out
 #define FLUSH_MEMWB_OUT memwb_out.set(MEMWB_OUT)
 
