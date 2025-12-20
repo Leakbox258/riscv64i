@@ -16,38 +16,20 @@ module LD
   logic [DATA_WIDTH-1:0] intermedia;
 
   always_comb begin
-    intermedia = 0;
-    data_o = 0;
+    logic [5:0] shift_amt;
+    shift_amt  = {3'b0, byteena_i[2:0]} << 3;  // byteena_i * 8
+
+    intermedia = data_i >> shift_amt;
 
     case (wid_i)
-      MEM_B: begin
-        intermedia = data_i >> (byteena_i * 8);
-        data_o = sext_8(intermedia[7:0]);
-      end
-      MEM_H: begin
-        intermedia = data_i >> (byteena_i * 8);
-        data_o = sext_16(intermedia[15:0]);
-      end
-      MEM_W: begin
-        intermedia = data_i >> (byteena_i * 8);
-        data_o = sext_32(intermedia[31:0]);
-      end
-      MEM_D: begin
-        data_o = data_i;
-      end
-      MEM_BU: begin
-        intermedia = data_i >> (byteena_i * 8);
-        data_o = zext_8(intermedia[7:0]);
-      end
-      MEM_HU: begin
-        intermedia = data_i >> (byteena_i * 8);
-        data_o = zext_16(intermedia[15:0]);
-      end
-      MEM_WU: begin
-        intermedia = data_i >> (byteena_i * 8);
-        data_o = zext_32(intermedia[31:0]);
-      end
-      default: ;
+      MEM_B:   data_o = sext_8(intermedia[7:0]);
+      MEM_H:   data_o = sext_16(intermedia[15:0]);
+      MEM_W:   data_o = sext_32(intermedia[31:0]);  // sext.w
+      MEM_D:   data_o = intermedia;
+      MEM_BU:  data_o = zext_8(intermedia[7:0]);
+      MEM_HU:  data_o = zext_16(intermedia[15:0]);
+      MEM_WU:  data_o = zext_32(intermedia[31:0]);
+      default: data_o = 0;
     endcase
   end
 

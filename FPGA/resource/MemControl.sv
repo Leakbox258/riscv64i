@@ -95,7 +95,6 @@ module MemControl
     end
   end
 
-  logic [DATA_WIDTH-1:0] intermedia;
 
   always_comb begin
     dataWEn = 0;
@@ -111,46 +110,18 @@ module MemControl
   end
 
   always_comb begin
-    intermedia = 0;
     data_o = 0;
 
     if (enwr_i == Read && En_i) begin
-      case (wid_i)
-        MEM_B: begin
-          intermedia = dataRead >> (addr_i[2:0] * 8);
-          data_o = sext_8(intermedia[7:0]);
-        end
-        MEM_H: begin
-          intermedia = dataRead >> (addr_i[2:0] * 8);
-          data_o = sext_16(intermedia[15:0]);
-        end
-        MEM_W: begin
-          intermedia = dataRead >> (addr_i[2:0] * 8);
-          data_o = sext_32(intermedia[31:0]);
-        end
-        MEM_D: begin
-          data_o = dataRead;
-        end
-        MEM_BU: begin
-          intermedia = dataRead >> (addr_i[2:0] * 8);
-          data_o = zext_8(intermedia[7:0]);
-        end
-        MEM_HU: begin
-          intermedia = dataRead >> (addr_i[2:0] * 8);
-          data_o = zext_16(intermedia[15:0]);
-        end
-        MEM_WU: begin
-          intermedia = dataRead >> (addr_i[2:0] * 8);
-          data_o = zext_32(intermedia[31:0]);
-        end
-        default: ;
-      endcase
+      data_o = dataRead;
     end
 
   end
 
+  logic [63:0] intermedia;
   always_comb begin
-    instAddr = pc_i[IPRAM_SIZE-1:2];
+    intermedia = (pc_i - 64'h80000000) >> 2;
+    instAddr = intermedia[13:0];
     illegal_access_o = pc_i[1:0] != 2'b0;
     inst_o = instRead;  // delayed
   end

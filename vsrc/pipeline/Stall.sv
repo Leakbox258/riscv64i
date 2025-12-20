@@ -1,3 +1,5 @@
+`include "pipeline_pkg.sv"
+
 module Stall
   import pipeline_pkg::*;
 (

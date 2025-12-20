@@ -83,11 +83,16 @@ module Display #(
 
   end
 
+  logic [28:0] cycle;
+
   always_ff @(posedge clk_i) begin
     if (rst_i) begin
       for (int k = 0; k < 8; k++) segs_reg[k] <= SEGNONE;
+      cycle <= 0;
     end else begin
-      for (int k = 0; k < 8; k++) segs_reg[k] <= segs_combine[k];
+      cycle <= cycle + 1;
+
+      if (cycle[25]) for (int k = 0; k < 8; k++) segs_reg[k] <= segs_combine[k];
     end
   end
 

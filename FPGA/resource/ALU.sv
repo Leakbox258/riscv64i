@@ -18,10 +18,7 @@ module ALU
 			ALU_ADDW = 12, ALU_SUBW = 13,
 			ALU_SLLW = 14, ALU_SRLW = 15, ALU_SRAW = 16;
 
-  reg [DATA_WIDTH/2-1 : 0] intermedia;
-
   always_comb begin
-    intermedia = 0;
 
     case (opcode_i)
       ALU_ADD: begin
@@ -52,7 +49,7 @@ module ALU
         C_o = sra_64(A_i, B_i[5:0]);
       end
       ALU_EQ: begin
-        C_o = {{DATA_WIDTH - 1{1'b0}}, (A_i - B_i) == 0};
+        C_o = {{DATA_WIDTH - 1{1'b0}}, A_i == B_i};
       end
       ALU_SLT: begin
         C_o = {{DATA_WIDTH - 1{1'b0}}, signed_slt(A_i, B_i)};
@@ -64,24 +61,19 @@ module ALU
         C_o = B_i;
       end
       ALU_ADDW: begin
-        intermedia = A_i[DATA_WIDTH/2-1:0] + B_i[DATA_WIDTH/2-1:0];
-        C_o = sext_32(intermedia);
+        C_o = sext_32(A_i[DATA_WIDTH/2-1:0] + B_i[DATA_WIDTH/2-1:0]);
       end
       ALU_SUBW: begin
-        intermedia = A_i[DATA_WIDTH/2-1:0] + B_i[DATA_WIDTH/2-1:0];
-        C_o = sext_32(intermedia);
+        C_o = sext_32(A_i[DATA_WIDTH/2-1:0] - B_i[DATA_WIDTH/2-1:0]);
       end
       ALU_SLLW: begin
-        intermedia = A_i[DATA_WIDTH/2-1:0] << B_i[4:0];
-        C_o = sext_32(intermedia);
+        C_o = sext_32(A_i[DATA_WIDTH/2-1:0] << B_i[4:0]);
       end
       ALU_SRLW: begin
-        intermedia = A_i[DATA_WIDTH/2-1:0] >> B_i[4:0];
-        C_o = sext_32(intermedia);
+        C_o = sext_32(A_i[DATA_WIDTH/2-1:0] >> B_i[4:0]);
       end
       ALU_SRAW: begin
-        intermedia = sra_32(A_i[DATA_WIDTH/2-1:0], B_i[4:0]);
-        C_o = sext_32(intermedia);
+        C_o = sext_32(sra_32(A_i[DATA_WIDTH/2-1:0], B_i[4:0]));
       end
       default: begin
         C_o = 0;

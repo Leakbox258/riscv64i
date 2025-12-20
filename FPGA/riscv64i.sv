@@ -22,32 +22,43 @@ module riscv64i #(
   ECALL = 3, EBREAK = 4;
   parameter Anormaly = 2;
 
+  wire lock, clk_pll;
+  PLL pll (
+      .inclk0(clk),
+      .c0(clk_pll),
+      .locked(lock)
+  );
+
+  wire syst_rst = ~lock | ~rst;
   logic [7:0] exception;
   logic [DATA_WIDTH-1:0] pc, new_pc;
+  logic [INST_WIDTH-1:0] inst;
+
 
   /* verilator public_module */
   PC Pc (
-      .clk_i(clk),
+      .clk_i(clk_pll),
       .ewrite_i(state == NORMAL),
-      .rst_i(rst),
+      .rst_i(syst_rst),
       .data_i(new_pc),
       .pc_o(pc)
   );
 
   /* verilator public_module */
   CPU Cpu (
-      .clk_i(clk),
-      .rst_i(rst),
+      .clk_i(clk_pll),
+      .rst_i(syst_rst),
       .pc_i (pc),
 
       .new_pc_o(new_pc),
-      .exceptions_o(exception)
+      .exceptions_o(exception),
+      .inst_o(inst)
   );
 
   wire [7:0] segs[7:0];
   Display display (
-      .clk_i(clk),
-      .rst_i(rst),
+      .clk_i(clk_pll),
+      .rst_i(syst_rst),
       .display_i(pc[INST_WIDTH-1:0]),
       .segs_reg(segs)
   );
@@ -80,13 +91,13 @@ module riscv64i #(
   end
 
   /// Display
-  always_ff @(posedge clk) begin
+  always_ff @(posedge clk_pll) begin
     $strobe("Verilator: Exception code: %08b", exception);
   end
 
 
-  always_ff @(posedge clk) begin
-    if (rst) begin
+  always_ff @(posedge clk_pll) begin
+    if (syst_rst) begin
       state <= RST;  // meanwhile reset PC to 0x80000000
     end else begin
       state <= nstate;
