@@ -53,13 +53,13 @@ module CPU
       stall_persistence <= 1'b0;
     end else begin
       stall_persistence <= stall;
+
     end
   end
-
   always_ff @(posedge clk_i) begin
     if (rst_i) begin
       inst_delay <= 0;
-    end else if (!stall_persistence) begin
+    end else begin
       inst_delay <= inst_safe;
     end
   end
@@ -70,7 +70,7 @@ module CPU
       .pc_i(pc_i),
       .enwr_i(exmem_out.Mem_REn ? 1'b1 : 1'b0),
       .En_i(exmem_out.Mem_REn | exmem_out.Mem_WEn),
-      .data_i(memwrite_mem1),
+      .data_i(exmem_out.Store_Data),
       .wid_i(exmem_out.Detail),
 
       .data_o(memdata_mem),
@@ -87,11 +87,9 @@ module CPU
       .data_i(inst_safe),
       .inst_o(inst_final)
   );
-
   // =======================================================================
   // 2. IF 2
   // =======================================================================
-
   IFID_Pipe_t ifid_in, ifid_out;
 
   assign ifid_in.PC   = flush_persistence ? 0 : pc_delayed;
@@ -116,7 +114,6 @@ module CPU
   // =======================================================================
   // 3. ID
   // =======================================================================
-
   IDEX_Pipe_t idex_in, idex_out;
 
   assign idex_in.PC = ifid_out.PC;
@@ -125,7 +122,7 @@ module CPU
   assign idex_in.RegData[IDX_RS2] = GprReadRs2;
 
   /* (* keep = 1 *) */ wire [INST_WIDTH-1:0] inst_IDU;
-  assign inst_IDU = ifid_out.Inst;
+  assign inst_IDU = ifid_out.Inst;  /// !
 
   IDU idu (
       .inst_i(inst_IDU),
@@ -141,6 +138,29 @@ module CPU
   );
 
   logic [DATA_WIDTH-1:0] GprReadRs1, GprReadRs2;
+
+  /* verilator public_module */
+  GPR gpr (
+      .clk  (clk_i),
+      .rs1_i(idex_in.RegIdx[IDX_RS1]),  // ID
+      .rs2_i(idex_in.RegIdx[IDX_RS2]),  // ID
+
+      .rd_i(memwb_out.RD_Addr),  // WB
+      .write_enable_i(memwb_out.Reg_WEn),  // WB
+      .data_i(WB_Data),
+
+      .rs1_data_o(GprReadRs1),
+      .rs2_data_o(GprReadRs2)
+
+  );
+
+  /// Display
+  always_ff @(posedge clk_i) begin
+    $strobe(
+        "GPR: Cycle %0d, GPR read x%0d and x%0d, GPR write x%0d, ALUData 0x%h, RegEn %0d, MemREn %0d, Memdata 0x%0h",
+        cycle, idex_in.RegIdx[IDX_RS1], idex_in.RegIdx[IDX_RS2], memwb_out.RD_Addr,
+        memwb_out.WB_Data, memwb_out.Reg_WEn, memwb_out.Mem_REn, WB_Data);
+  end
 
   IMMGen immgen (
       .inst_i(inst_IDU),
@@ -168,19 +188,14 @@ module CPU
   logic [DATA_WIDTH-1:0] alu_C;
   logic [DATA_WIDTH-1:0] Rs1_BrJl;
   logic [DATA_WIDTH-1:0] pcn_ex;
-
-  wire [DATA_WIDTH-1:0] MEM1_DATA_ALU, MEM2_DATA_ALU, MEM3_DATA_ALU, WB_Data_ALU;
-
-  assign MEM1_DATA_ALU = exmem_out.ALU_Result;
-  assign MEM2_DATA_ALU = mem1mem2_out.ALU_Result;
-  assign MEM3_DATA_ALU = memwb_in.WB_Data;
-  assign WB_Data_ALU   = memwb_out.WB_Data;
+  /* (* keep = 1 *) */wire  [DATA_WIDTH-1:0] ALU_Result;  // result from last cycle
+  /* (* keep = 1 *) */wire  [DATA_WIDTH-1:0] WB_Data_ALU;
+  assign ALU_Result  = exmem_out.ALU_Result;
+  assign WB_Data_ALU = WB_Data;  // critical path
 
   always_comb begin
     case (Forward_A)
-      MEM1_TO_ALU: Rs1_BrJl = MEM1_DATA_ALU;
-      MEM2_TO_ALU: Rs1_BrJl = MEM2_DATA_ALU;
-      MEM3_TO_ALU: Rs1_BrJl = MEM3_DATA_ALU;
+      MEM_TO_ALU: Rs1_BrJl = ALU_Result;
       WB_TO_ALU: Rs1_BrJl = WB_Data_ALU;
       default: Rs1_BrJl = Rs1_EXU;
     endcase
@@ -189,9 +204,7 @@ module CPU
 
   always_comb begin
     case (Forward_A)
-      MEM1_TO_ALU: alu_A = MEM1_DATA_ALU;
-      MEM2_TO_ALU: alu_A = MEM2_DATA_ALU;
-      MEM3_TO_ALU: alu_A = MEM3_DATA_ALU;
+      MEM_TO_ALU: alu_A = ALU_Result;
       WB_TO_ALU: alu_A = WB_Data_ALU;
       default: alu_A = ExMuxAluA;
     endcase
@@ -199,16 +212,8 @@ module CPU
 
   always_comb begin
     case (Forward_B)
-      MEM1_TO_ALU: begin
-        if (Forward_Store != MEM1_TO_ALU) alu_B = MEM1_DATA_ALU;
-        else alu_B = ExMuxAluB;
-      end
-      MEM2_TO_ALU: begin
-        if (Forward_Store != MEM2_TO_ALU) alu_B = MEM2_DATA_ALU;
-        else alu_B = ExMuxAluB;
-      end
-      MEM3_TO_ALU: begin
-        if (Forward_Store != MEM3_TO_ALU) alu_B = MEM3_DATA_ALU;
+      MEM_TO_ALU: begin
+        if (Forward_Store != MEM_TO_ALU) alu_B = ALU_Result;
         else alu_B = ExMuxAluB;
       end
       WB_TO_ALU: begin
@@ -222,9 +227,7 @@ module CPU
 
   always_comb begin
     case (Forward_Store)
-      MEM1_TO_ALU: exmem_in.Store_Data = MEM1_DATA_ALU;
-      MEM2_TO_ALU: exmem_in.Store_Data = MEM2_DATA_ALU;
-      MEM3_TO_ALU: exmem_in.Store_Data = MEM3_DATA_ALU;
+      MEM_TO_ALU: exmem_in.Store_Data = ALU_Result;
       WB_TO_ALU: exmem_in.Store_Data = WB_Data_ALU;
       default: exmem_in.Store_Data = Rs2_EXU;
     endcase
@@ -278,12 +281,9 @@ module CPU
   /// Display
   always_ff @(posedge clk_i) begin
     $strobe(
-        "ALU: A: 0x%0h, B: 0x%0h, C: 0x%0h, Rs1: 0x%0h, Rs2: 0x%0h, Imm: 0x%0h, AForwardFromMem1: %s, AForwardFromMem2: %s, AForwardFromMem3: %s, AForwardFromWB: %s, BForwardFromMem1: %s, BForwardFromMem2: %s, BForwardFromMem3: %s, BForwardFromWB: %s",
+        "ALU: A: 0x%0h, B: 0x%0h, C: 0x%0h, Rs1: 0x%0h, Rs2: 0x%0h, Imm: 0x%0h, ForwardFromMem: %s, ForwardFromWB: %s",
         alu_A, alu_B, alu_C, idex_out.RegData[IDX_RS1], idex_out.RegData[IDX_RS2], idex_out.Imm,
-        Forward_A == MEM1_TO_ALU ? "true" : "false", Forward_A == MEM2_TO_ALU ? "true" : "false",
-        Forward_A == MEM3_TO_ALU ? "true" : "false", Forward_A == WB_TO_ALU ? " true" : "false",
-        Forward_B == MEM1_TO_ALU ? "true" : "false", Forward_B == MEM2_TO_ALU ? "true" : "false",
-        Forward_B == MEM3_TO_ALU ? "true" : "false", Forward_B == WB_TO_ALU ? " true" : "false");
+        Forward_B == MEM_TO_ALU ? "true" : "false", Forward_B == WB_TO_ALU ? " true" : "false");
 
     $strobe("BRJL: pc: 0x%08h, rs1: 0x%0h, Imm: 0x%0h, taken: 0x%08h, nonetaken: 0x%08h", pc,
             Rs1_BrJl, Imm_EXU, taken, none_taken);
@@ -324,119 +324,60 @@ module CPU
   );
 
   // =======================================================================
-  // 5. MEM 1 (accessing ram)
+  // 5. MEM
   // =======================================================================
-  wire [2:0] Forward_RS2;
-  logic [DATA_WIDTH-1:0] memwrite_mem1;
-  always_comb begin
-    case (Forward_RS2)
-      MEM3_TO_MEM1: memwrite_mem1 = memwb_in.WB_Data;
-      MEM2_TO_MEM1: memwrite_mem1 = mem1mem2_out.ALU_Result;
-      WB_TO_MEM1: memwrite_mem1 = memwb_out.WB_Data;
-      default: memwrite_mem1 = exmem_out.Store_Data;
-    endcase
-  end
-
   assign mem_addr_exmem = exmem_out.ALU_Result;
+  wire [DATA_WIDTH-1:0] memdata_mem;
 
   /// display
   always_ff @(posedge clk_i) begin
-    $strobe("MEM1: Ram%0s, Addr: 0x%0h, WData: 0x%0h",
+    $strobe("RAM: Cycle %0d, Ram%0s, Addr: 0x%0h, WData: 0x%0h", cycle,
             exmem_out.Mem_REn ? " read" : (exmem_out.Mem_WEn ? " write" : " non access"),
             exmem_out.ALU_Result, exmem_out.Store_Data);
   end
 
-  MEM1MEM2_Pipe_t mem1mem2_in, mem1mem2_out;
-  assign mem1mem2_in.PC = exmem_out.PC;
-  assign mem1mem2_in.PC_Next = exmem_out.PC_Next;
-  assign mem1mem2_in.RD_Addr = exmem_out.RegIdx[IDX_RD];
-  assign mem1mem2_in.RS2_Addr = exmem_out.RegIdx[IDX_RS2];
-  assign mem1mem2_in.Mem_Addr = exmem_out.ALU_Result;
-  assign mem1mem2_in.ALU_Result = exmem_out.ALU_Result;
-  assign mem1mem2_in.Reg_WEn = exmem_out.Reg_WEn;
-  assign mem1mem2_in.Mem_REn = exmem_out.Mem_REn;
-  assign mem1mem2_in.wid = exmem_out.Detail;
-  assign mem1mem2_in.enable = exmem_out.enable;
+  // =======================================================================
+  // MEM/WB
+  // =======================================================================
+  MEMWB_Pipe_In_t  memwb_in;
+  MEMWB_Pipe_Out_t memwb_out;
 
-  MEM1MEM2 mem1mem2_reg (
-      .clk_i(clk_i),
-      .rst(rst_i),
-      .data_i(mem1mem2_in),
-      .data_o(mem1mem2_out)
+  assign memwb_in.PC       = exmem_out.PC;
+  assign memwb_in.PC_Next  = exmem_out.PC_Next;
+  assign memwb_in.RD_Addr  = exmem_out.RegIdx[IDX_RD];
+  assign memwb_in.Mem_Addr = mem_addr_exmem;
+  assign memwb_in.wid      = exmem_out.Detail;
+  assign memwb_in.Reg_WEn  = exmem_out.Reg_WEn;
+  assign memwb_in.enable   = exmem_out.enable;
+
+  MEMWB memwb_reg (
+      .clk_i  (clk_i),
+      .rst_i  (rst_i),
+      .WB_Data(exmem_out.ALU_Result),  // read data from syn RAM will be ready next cycle
+      .Mem_REn(exmem_out.Mem_REn),
+      .data_i (memwb_in),
+      .data_o (memwb_out)
   );
 
   // =======================================================================
-  // 6. MEM 2 (avoid forward mem_read or may create a long path)
+  // 6. WB
   // =======================================================================
 
   wire [DATA_WIDTH-1:0] mem_read;
-  MEM2MEM3_Pipe_t mem2mem3_out;
-  wire [DATA_WIDTH-1:0] memdata_mem;
+  LD ld (
+      .data_i(memdata_mem),
+      .wid_i(memwb_out.wid),
+      .byteena_i(memwb_out.Mem_Addr[2:0]),
 
-  //   LD ld (
-  //       .data_i(memdata_mem),
-  //       .wid_i(mem1mem2_out.wid),
-  //       .byteena_i(mem1mem2_out.Mem_Addr[2:0]),
-
-  //       .data_o(mem_read)
-  //   );
-
-  MEM2MEM3 mem2mem3_reg (
-      .clk_i(clk_i),
-      .rst_i(rst_i),
-      .data_i(mem1mem2_out),
-      .MemRead_i(memdata_mem),  /* mem_read */
-      .data_o(mem2mem3_out)
+      .data_o(mem_read)
   );
 
-  // =======================================================================
-  // 7. MEM 3 (break critical edge from ram -> alu -> pcn)
-  // =======================================================================
+  wire [DATA_WIDTH-1:0] WB_Data;
+  assign WB_Data = memwb_out.Mem_REn ? mem_read : memwb_out.WB_Data;
 
-  MEMWB_Pipe_t memwb_in, memwb_out;
-
-  assign memwb_in.PC      = mem2mem3_out.PC;
-  assign memwb_in.PC_Next = mem2mem3_out.PC_Next;
-  assign memwb_in.RD_Addr = mem2mem3_out.RD_Addr;
-  assign memwb_in.Reg_WEn = mem2mem3_out.Reg_WEn;
-  assign memwb_in.enable  = mem2mem3_out.enable;
-  assign memwb_in.WB_Data = mem2mem3_out.Mem_REn ? mem2mem3_out.MemRead : mem2mem3_out.ALU_Result;
-
-  MEMWB memwb_reg (
-      .clk_i (clk_i),
-      .rst_i (rst_i),
-      .data_i(memwb_in),
-      .data_o(memwb_out)
-  );
-
-  /// Display
-  always_comb begin
-    $strobe("MEM3: MemRead: 0x%0h, ALUData: 0x%0h", mem2mem3_out.MemRead, mem2mem3_out.ALU_Result);
-  end
-
-  // =======================================================================
-  // 8. WB
-  // =======================================================================
-
-  /* verilator public_module */
-  GPR gpr (
-      .clk  (clk_i),
-      .rs1_i(idex_in.RegIdx[IDX_RS1]),  // ID
-      .rs2_i(idex_in.RegIdx[IDX_RS2]),  // ID
-
-      .rd_i(memwb_out.RD_Addr),  // WB
-      .write_enable_i(memwb_out.Reg_WEn),  // WB
-      .data_i(memwb_out.WB_Data),
-
-      .rs1_data_o(GprReadRs1),
-      .rs2_data_o(GprReadRs2)
-
-  );
-
-  /// Display
   always_ff @(posedge clk_i) begin
-    $strobe("GPR: Cycle %0d, GPR read x%0d and x%0d, GPR write x%0d, WB_Data 0x%0h", cycle,
-            idex_in.RegIdx[IDX_RS1], idex_in.RegIdx[IDX_RS2], memwb_out.RD_Addr, memwb_out.WB_Data);
+    $strobe("WB: MemREn: %d, memdata: 0x%0h, memwid: %d, Regdata: 0x%0h", memwb_out.Mem_REn,
+            memdata_mem, memwb_out.wid, memwb_out.WB_Data);
   end
 
   // =======================================================================
@@ -455,93 +396,66 @@ module CPU
   // =======================================================================
   // Forward
   // ======================================================================= 
-  logic [2:0] Forward_A, Forward_B, Forward_Store;
-  wire EnRs1_ex, EnRs2_ex, EnMemW_ex;
-  wire [RF_SIZE-1:0] Rs1Idx_ex, Rs2Idx_ex;
+  logic [1:0] Forward_A, Forward_B, Forward_Store;
+  /* (* keep = 1 *) */ wire EnRs1_ex;
+  /* (* keep = 1 *) */ wire EnRs2_ex;
+  /* (* keep = 1 *) */ wire EnMemW_ex;
 
-  wire EnRegW_mem1, EnMemW_mem1;
-  wire [RF_SIZE-1:0] RdIdx_mem1, Rs2Idx_mem1;
-  wire EnRegW_mem2, EnMemR_mem1;
-  wire [RF_SIZE-1:0] RdIdx_mem2;
-  wire EnMemR_mem2;
-  wire EnRegW_mem3;
-  wire [RF_SIZE-1:0] RdIdx_mem3;
-  wire EnRegW_wb;
-  wire [RF_SIZE-1:0] RdIdx_wb;
+  /* (* keep = 1 *) */ wire EnRegW_mem;
+  /* (* keep = 1 *) */ wire [RF_SIZE-1:0] RdIdx_mem;
+  /* (* keep = 1 *) */ wire EnRegW_wb;
+  /* (* keep = 1 *) */ wire [RF_SIZE-1:0] RdIdx_wb;
+  /* (* keep = 1 *) */ wire [RF_SIZE-1:0] Rs1Idx_ex;
+  /* (* keep = 1 *) */ wire [RF_SIZE-1:0] Rs2Idx_ex;
 
-  assign EnRs1_ex = idex_out.Enable[IDX_RS1];
-  assign EnRs2_ex = idex_out.Enable[IDX_RS2];
-  assign EnMemW_ex = idex_out.Enable[IDX_MWRITE];
-  assign EnRegW_mem1 = exmem_out.Reg_WEn;
-  assign EnMemW_mem1 = exmem_out.Mem_WEn;
-  assign EnMemR_mem1 = exmem_out.Mem_REn;
-  assign RdIdx_mem1 = exmem_out.RegIdx[IDX_RD];
-  assign Rs2Idx_mem1 = mem1mem2_in.RS2_Addr;
-  assign EnRegW_mem2 = mem1mem2_out.Reg_WEn;
-  assign EnMemR_mem2 = mem1mem2_out.Mem_REn;
-  assign RdIdx_mem2 = mem1mem2_out.RD_Addr;
-  assign EnRegW_mem3 = mem2mem3_out.Reg_WEn;
-  assign RdIdx_mem3 = mem2mem3_out.RD_Addr;
-  assign EnRegW_wb = memwb_out.Reg_WEn;
-  assign RdIdx_wb = memwb_out.RD_Addr;
-  assign Rs1Idx_ex = idex_out.RegIdx[IDX_RS1];
-  assign Rs2Idx_ex = idex_out.RegIdx[IDX_RS2];
+  assign EnRs1_ex   = idex_out.Enable[IDX_RS1];
+  assign EnRs2_ex   = idex_out.Enable[IDX_RS2];
+  assign EnMemW_ex  = idex_out.Enable[IDX_MWRITE];
+  assign EnRegW_mem = exmem_out.Reg_WEn;
+  assign RdIdx_mem  = exmem_out.RegIdx[IDX_RD];
+  assign EnRegW_wb  = memwb_out.Reg_WEn;
+  assign RdIdx_wb   = memwb_out.RD_Addr;
+  assign Rs1Idx_ex  = idex_out.RegIdx[IDX_RS1];
+  assign Rs2Idx_ex  = idex_out.RegIdx[IDX_RS2];
 
   Forward Forward (
 
       .EnRs1_ex (EnRs1_ex),
       .EnRs2_ex (EnRs2_ex),
       .EnMemW_ex(EnMemW_ex),
-      .Rs1Idx_ex(Rs1Idx_ex),
-      .Rs2Idx_ex(Rs2Idx_ex),
 
-      .EnRegW_mem1(EnRegW_mem1),
-      .EnMemW_mem1(EnMemW_mem1),
-      .EnMemR_mem1(EnMemR_mem1),
-      .RdIdx_mem1(RdIdx_mem1),
-      .RstoreIdx_mem1(Rs2Idx_mem1),
+      .EnRegW_mem(EnRegW_mem),
+      .RdIdx_mem (RdIdx_mem),
+      .EnRegW_wb (EnRegW_wb),
+      .RdIdx_wb  (RdIdx_wb),
+      .Rs1Idx_ex (Rs1Idx_ex),
+      .Rs2Idx_ex (Rs2Idx_ex),
 
-      .EnRegW_mem2(EnRegW_mem2),
-      .EnMemR_mem2(EnMemR_mem2),
-      .RdIdx_mem2 (RdIdx_mem2),
-
-      .EnRegW_mem3(EnRegW_mem3),
-      .RdIdx_mem3 (RdIdx_mem3),
-
-      .EnRegW_wb(EnRegW_wb),
-      .RdIdx_wb (RdIdx_wb),
-
-      .Forward_A_Ex(Forward_A),
-      .Forward_B_Ex(Forward_B),
-      .Forward_Store_Ex(Forward_Store),
-      .Forward_Store_Mem1(Forward_RS2)
+      .Forward_A(Forward_A),
+      .Forward_B(Forward_B),
+      .Forward_Store(Forward_Store)
   );
+
 
   // =======================================================================
   // Stall
   // ======================================================================= 
-  wire stall;
-  wire EnMemR_ex  /* EnMemR_mem1 */;
-  wire [RF_SIZE-1:0] RdIdx_ex, Rs1Idx_id, Rs2Idx_id;  /* RdIdx_mem1 */
+  logic stall;
+  /* (* keep = 1 *) */ wire EnMemR_ex, EnRd_ex;
+  /* (* keep = 1 *) */ wire [RF_SIZE-1:0] RdIdx_ex, Rs1Idx_id, Rs2Idx_id;
   assign EnMemR_ex = idex_out.Enable[IDX_MREAD];
+  assign EnRd_ex   = idex_out.Enable[IDX_RD];
   assign RdIdx_ex  = idex_out.RegIdx[IDX_RD];
   assign Rs1Idx_id = idex_in.RegIdx[IDX_RS1];
   assign Rs2Idx_id = idex_in.RegIdx[IDX_RS2];
 
+
   Stall Stall (
-
       .EnMemR_ex(EnMemR_ex),
-      .RdIdx_ex (RdIdx_ex),
-
-      .EnMemR_mem1(EnMemR_mem1),
-      .RdIdx_mem1 (RdIdx_mem1),
-
-      .EnMemR_mem2(EnMemR_mem2),
-      .RdIdx_mem2 (RdIdx_mem2),
-
+      .EnRd_ex(EnRd_ex),
+      .RdIdx_ex(RdIdx_ex),
       .Rs1Idx_id(Rs1Idx_id),
       .Rs2Idx_id(Rs2Idx_id),
-
       .stall(stall)
   );
 

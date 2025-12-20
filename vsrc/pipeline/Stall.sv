@@ -1,31 +1,28 @@
-`include "pipeline_pkg.sv"
-
 module Stall
   import pipeline_pkg::*;
 (
-    input EnMemR_ex,
-    input EnRd_ex,
-    input [RF_SIZE-1:0] RdIdx_ex,
 
-    input [RF_SIZE-1:0] Rs1Idx_id,
-    input [RF_SIZE-1:0] Rs2Idx_id,
+    input logic EnMemR_ex,
+    input logic [RF_SIZE-1:0] RdIdx_ex,
+
+    input logic EnMemR_mem1,
+    input logic [RF_SIZE-1:0] RdIdx_mem1,
+
+    input logic EnMemR_mem2,
+    input logic [RF_SIZE-1:0] RdIdx_mem2,
+
+    input logic [RF_SIZE-1:0] Rs1Idx_id,
+    input logic [RF_SIZE-1:0] Rs2Idx_id,
 
     output logic stall
 );
 
-  always_comb begin
-    stall = 1'b0;
+  logic hazard_ex, hazard_mem1, hazard_mem2;
 
-    if (EnMemR_ex && EnRd_ex && RdIdx_ex != 0) begin
+  assign hazard_ex   = EnMemR_ex   && (RdIdx_ex != 0)   && (RdIdx_ex == Rs1Idx_id || RdIdx_ex == Rs2Idx_id);
+  assign hazard_mem1 = EnMemR_mem1 && (RdIdx_mem1 != 0) && (RdIdx_mem1 == Rs1Idx_id || RdIdx_mem1 == Rs2Idx_id);
+  assign hazard_mem2 = EnMemR_mem2 && (RdIdx_mem2 != 0) && (RdIdx_mem2 == Rs1Idx_id || RdIdx_mem2 == Rs2Idx_id);
 
-      if ((RdIdx_ex == Rs1Idx_id)) begin
-        stall = 1'b1;
-      end
-
-      if ((RdIdx_ex == Rs2Idx_id)) begin
-        stall = 1'b1;
-      end
-    end
-  end
+  assign stall = hazard_ex | hazard_mem1 | hazard_mem2;
 
 endmodule

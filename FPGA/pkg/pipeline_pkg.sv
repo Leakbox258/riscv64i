@@ -18,13 +18,8 @@ package pipeline_pkg;
 
   // Forwarding
   parameter NO_FWD = 0;
-  parameter MEM1_TO_ALU = 1;
-  parameter MEM2_TO_ALU = 2;  // forward ALU result only
-  parameter MEM3_TO_ALU = 3;
-  parameter WB_TO_ALU = 4;
-  parameter MEM3_TO_MEM1 = 5;
-  parameter MEM2_TO_MEM1 = 6;
-  parameter WB_TO_MEM1 = 7;
+  parameter MEM_TO_ALU = 1;
+  parameter WB_TO_ALU = 2;
 
 
   // 1. IF -> ID
@@ -61,44 +56,30 @@ package pipeline_pkg;
     logic                    enable;
   } EXMEM_Pipe_t  /* verilator public */;
 
-  // 4. MEM1 -> MEM2
+  // 4. MEM -> WB
   typedef struct packed {
     logic [DATA_WIDTH-1:0] PC;
     logic [DATA_WIDTH-1:0] PC_Next;
-    logic [RF_SIZE-1:0] RD_Addr;
-    logic [RF_SIZE-1:0] RS2_Addr;  // for store
-    logic [DATA_WIDTH-1:0] Mem_Addr;
-    logic [DATA_WIDTH-1:0] ALU_Result;
-    logic Reg_WEn;
-    logic Mem_REn;
-    logic [2:0] wid;
-    logic enable;
-
-  } MEM1MEM2_Pipe_t  /* verilator public */;
-
-  // 5. MEM2 -> MEM3
-  typedef struct packed {
-    logic [DATA_WIDTH-1:0] PC;
-    logic [DATA_WIDTH-1:0] PC_Next;
-    logic [RF_SIZE-1:0] RD_Addr;
-    logic [DATA_WIDTH-1:0] ALU_Result;
-    logic Reg_WEn;
-    logic Mem_REn;
-    logic enable;
-
-    logic [DATA_WIDTH-1:0] MemRead;
-  } MEM2MEM3_Pipe_t  /* verilator public */;
-
-  // 6. MEM -> WB
-  typedef struct packed {
-    logic [DATA_WIDTH-1:0] PC;
-    logic [DATA_WIDTH-1:0] PC_Next;
-    logic [DATA_WIDTH-1:0] WB_Data;
     logic [RF_SIZE-1:0]    RD_Addr;
+    logic [DATA_WIDTH-1:0] Mem_Addr;
     logic Reg_WEn;
     logic enable;
 
-  } MEMWB_Pipe_t  /* verilator public */;
+    logic [2:0] wid;
+  } MEMWB_Pipe_In_t  /* verilator public */;
+
+  typedef struct packed {
+    logic [DATA_WIDTH-1:0] PC;
+    logic [DATA_WIDTH-1:0] PC_Next;
+    logic [RF_SIZE-1:0]    RD_Addr;
+    logic [DATA_WIDTH-1:0] Mem_Addr;
+    logic                  Reg_WEn;
+    logic                  enable;
+
+    logic                  Mem_REn;
+    logic [2:0]            wid;
+    logic [DATA_WIDTH-1:0] WB_Data;
+  } MEMWB_Pipe_Out_t  /* verilator public */;
 
 endpackage
 

@@ -1,19 +1,18 @@
 `include "pipeline_pkg.sv"
 
-module MEMWB
+module MEM1MEM2
   import pipeline_pkg::*;
 (
     input clk_i,
-    input rst_i,
-
-    input  MEMWB_Pipe_t data_i,
-    output MEMWB_Pipe_t data_o
+    input rst,
+    input MEM1MEM2_Pipe_t data_i,
+    output MEM1MEM2_Pipe_t data_o
 );
 
-  MEMWB_Pipe_t next_data;
+  MEM1MEM2_Pipe_t next_data;
 
   always_comb begin
-    if (rst_i) begin
+    if (rst) begin
       next_data = 0;
     end else begin
       next_data = data_i;

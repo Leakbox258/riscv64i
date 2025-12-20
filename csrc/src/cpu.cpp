@@ -11,8 +11,9 @@ const char *regs[] = {"$0", "ra", "sp",  "gp",  "tp", "t0", "t1", "t2",
 IFID_t ifid_in, ifid_out;
 IDEX_t idex_in, idex_out;
 EXMEM_t exmem_in, exmem_out;
-MEMWB_IN_t memwb_in;
-MEMWB_OUT_t memwb_out;
+MEM1MEM2_t mem1mem2_out;
+MEM2MEM3_t mem2mem3_out;
+MEMWB_IN_t memwb_in, memwb_out;
 
 std::set<paddr_t> cpu_break_points;
 std::set<paddr_t> cpu_watch_points;

@@ -2,6 +2,7 @@
 #define __CPU_H__
 
 #include "Vriscv64i.h"
+#include "Vriscv64i_pipeline_pkg.h"
 #include "debug.h"
 #include "macro.h"
 
@@ -38,6 +39,12 @@ extern Vriscv64i top;
 #define EXMEM_OUT top.riscv64i->Cpu->__PVT__exmem_out
 #define FLUSH_EXMEM_OUT exmem_out.set(EXMEM_OUT)
 
+#define MEM1MEM2_OUT top.riscv64i->Cpu->__PVT__mem1mem2_out
+#define FLUSH_MEM1MEM2_out mem1mem2_out.set(MEM1MEM2_OUT)
+
+#define MEM2MEM3_OUT top.riscv64i->Cpu->__PVT__mem2mem3_out
+#define FLUSH_MEM2MEM3_out mem2mem3_out.set(MEM2MEM3_OUT)
+
 #define MEMWB_IN top.riscv64i->Cpu->__PVT__memwb_in
 #define FLUSH_MEMWB_IN memwb_in.set(MEMWB_IN)
 
@@ -47,8 +54,9 @@ extern Vriscv64i top;
 typedef Vriscv64i_IFID_Pipe_t__struct__0 IFID_t;
 typedef Vriscv64i_IDEX_Pipe_t__struct__0 IDEX_t;
 typedef Vriscv64i_EXMEM_Pipe_t__struct__0 EXMEM_t;
-typedef Vriscv64i_MEMWB_Pipe_In_t__struct__0 MEMWB_IN_t;
-typedef Vriscv64i_MEMWB_Pipe_Out_t__struct__0 MEMWB_OUT_t;
+typedef Vriscv64i_MEM1MEM2_Pipe_t__struct__0 MEM1MEM2_t;
+typedef Vriscv64i_MEM2MEM3_Pipe_t__struct__0 MEM2MEM3_t;
+typedef Vriscv64i_MEMWB_Pipe_t__struct__0 MEMWB_IN_t;
 
 void cpu_single_cycle();
 

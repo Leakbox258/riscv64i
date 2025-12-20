@@ -1,19 +1,23 @@
 `include "pipeline_pkg.sv"
 
-module MEMWB
+module IDEX
   import pipeline_pkg::*;
 (
-    input clk_i,
-    input rst_i,
+    input logic clk_i,
+    input logic rst_i,
+    input logic stall_i,
+    input logic flush_i,
 
-    input  MEMWB_Pipe_t data_i,
-    output MEMWB_Pipe_t data_o
+    input  IDEX_Pipe_t data_i,
+    output IDEX_Pipe_t data_o
 );
 
-  MEMWB_Pipe_t next_data;
+  IDEX_Pipe_t next_data;
 
   always_comb begin
     if (rst_i) begin
+      next_data = 0;
+    end else if (flush_i || stall_i) begin
       next_data = 0;
     end else begin
       next_data = data_i;

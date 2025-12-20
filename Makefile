@@ -11,6 +11,7 @@ VERILATOR_CFLAGS += -MMD --build -cc \
 VERILATOR_INCLUDE += -I./vsrc/pkg
 
 BUILD_DIR = ./build
+FPGA_DIR = ./FPGA
 AM_KERNELS_CPU_TESTS_DIR = ./3rd-party/am-kernels/tests/cpu-tests
 ABSTRACT_MACHINE_DIR = ./3rd-party/abstract-machine
 OBJ_DIR = $(BUILD_DIR)/obj_dir
@@ -31,6 +32,7 @@ $(SRC_AUTO_BIND): $(NXDC_FILES)
 	python3 $(NVBOARD_HOME)/scripts/auto_pin_bind.py $^ $@
 
 # project source
+FPGA_VSRCS = $(shell find $(abspath $(FPGA_DIR)) -name "*.sv") # sv only
 VSRCS = $(shell find $(abspath ./vsrc) -name "*.sv") # sv only
 CSRCS = $(shell find $(abspath ./csrc) -name "*.c" -or -name "*.cc" -or -name "*.cpp")
 CENTRY = csrc/main.cpp
@@ -104,8 +106,8 @@ $(SV2V):
 
 sv2v:
 	@mkdir -p $(BUILD_DIR)/verilog
-	$(foreach sv, $(VSRCS),$(info "converting $(sv)"))
-	$(foreach sv, $(VSRCS),$(shell sv2v $(VERILATOR_INCLUDE) $(sv) -w $(BUILD_DIR)/verilog/$(notdir $(sv)).v))
+	$(foreach sv, $(FPGA_VSRCS),$(info "converting $(sv)"))
+	$(foreach sv, $(FPGA_VSRCS),$(shell sv2v $(VERILATOR_INCLUDE) $(sv) -w $(BUILD_DIR)/verilog/$(notdir $(sv)).v))
 
 vrun: $(VBIN) testcase
 	@clear

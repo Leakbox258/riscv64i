@@ -32,8 +32,9 @@ extern paddr_t guest_to_host(vaddr_t);
 extern IFID_t ifid_in, ifid_out;
 extern IDEX_t idex_in, idex_out;
 extern EXMEM_t exmem_in, exmem_out;
-extern MEMWB_IN_t memwb_in;
-extern MEMWB_OUT_t memwb_out;
+extern MEM1MEM2_t mem1mem2_out;
+extern MEM2MEM3_t mem2mem3_out;
+extern MEMWB_IN_t memwb_in, memwb_out;
 
 static int is_batch_mode = false; // is_debug_mode = true
 
@@ -225,10 +226,14 @@ static int cmd_pipea(char *args) {
   cmd_pipe_impl(arg4);
   char arg5[] = "exmem-out";
   cmd_pipe_impl(arg5);
-  char arg6[] = "memwb-in";
+  char arg6[] = "mem1mem2-out";
   cmd_pipe_impl(arg6);
-  char arg7[] = "memwb-out";
+  char arg7[] = "mem2mem3-out";
   cmd_pipe_impl(arg7);
+  char arg8[] = "memwb-in";
+  cmd_pipe_impl(arg8);
+  char arg9[] = "memwb-out";
+  cmd_pipe_impl(arg9);
   return 0;
 }
 
@@ -476,19 +481,36 @@ static int cmd_pipe_impl(char *reg) {
     FLUSH_EXMEM_OUT;
 
     printf("exmem_out: \n\tPC: 0x%08x |\tPC_Next: 0x%08x |\tRs1: %s |\tRs2: "
-           "%s |\tRegWrite: %s |\tMemRead: %s |\tMemWrite: %s |",
+           "%s |\tRegWrite: %s |\tMemRead: %s |\tMemWrite: %s |\tALU: 0x%0lx|",
            (uint32_t)exmem_out.PC, (uint32_t)exmem_out.PC_Next,
            regs[exmem_out.RegIdx[0]], regs[exmem_out.RegIdx[1]],
            exmem_out.Reg_WEn ? "true" : "false",
            exmem_out.Mem_REn ? "true" : "false",
-           exmem_out.Mem_WEn ? "true" : "false");
+           exmem_out.Mem_WEn ? "true" : "false", exmem_out.ALU_Result);
+  } else if (!strcmp(reg, "mem1mem2_out") || !strcmp(reg, "mem1mem2-out")) {
+    FLUSH_MEM1MEM2_out;
+
+    printf("mem1mem2_out: \n\tPC: 0x%08x |\tPC_Next: 0x%08x |\tRd: %s "
+           "|\tRegWrite: %s |\tMemRead: %s |\nALU: 0x%0lx|",
+           (uint32_t)mem1mem2_out.PC, (uint32_t)mem1mem2_out.PC_Next,
+           regs[mem1mem2_out.RD_Addr], mem1mem2_out.Reg_WEn ? "true" : "false",
+           mem1mem2_out.Mem_REn ? "true" : "false", mem1mem2_out.ALU_Result);
+  } else if (!strcmp(reg, "mem2mem3_out") || !strcmp(reg, "mem2mem3-out")) {
+    FLUSH_MEM2MEM3_out;
+
+    printf("mem2mem3_out: \n\tPC: 0x%08x |\tPC_Next: 0x%08x |\tRd: %s "
+           "|\tRegWrite: %s |\tMemRead: %s |\tALU: 0x%0lx|",
+           (uint32_t)mem2mem3_out.PC, (uint32_t)mem2mem3_out.PC_Next,
+           regs[mem2mem3_out.RD_Addr], mem2mem3_out.Reg_WEn ? "true" : "false",
+           mem2mem3_out.Mem_REn ? "true" : "false", mem2mem3_out.ALU_Result);
   } else if (!strcmp(reg, "memwb_in") || !strcmp(reg, "memwb-in")) {
     FLUSH_MEMWB_IN;
 
     printf("memwb_in: \n\tPC: 0x%08x |\tPC_Next: 0x%08x |\tRd: %s |\tRegWrite: "
-           "%s |",
+           "%s |\tWB_DATA: 0x%0lx|",
            (uint32_t)memwb_in.PC, (uint32_t)memwb_in.PC_Next,
-           regs[memwb_in.RD_Addr], memwb_in.Reg_WEn ? "true" : "false");
+           regs[memwb_in.RD_Addr], memwb_in.Reg_WEn ? "true" : "false",
+           memwb_in.WB_Data);
   } else if (!strcmp(reg, "memwb_out") || !strcmp(reg, "memwb-out")) {
     FLUSH_MEMWB_OUT;
 
