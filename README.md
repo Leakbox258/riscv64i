@@ -21,18 +21,18 @@ Stalling is designed for data hazard. To be brief, if a `Load` instrution is in 
 ### control flow 
 `riscv64i` don't have a specific predictor now, it will assume any branch / jump instructions as none-taken.
 ## 3rd-party
-- `abstract-machine`: to provide riscv64i bare machine compiling and linking after slightly modifying. `https://nju-projectn.github.io/ics-pa-gitbook/ics2025/2.3.html`
-- `am-kernels`: to provide cpu testcases. `https://nju-projectn.github.io/ics-pa-gitbook/ics2025/2.2.html`
-- `nemu`: reuse the `sdb` part and combine it with verilator simulation C++ files to create a single step debugger. `https://nju-projectn.github.io/ics-pa-gitbook/ics2025/1.3.html`
+- `abstract-machine`: to provide riscv64i bare machine compiling and linking after slightly modifying. [site: abstract-machine](https://nju-projectn.github.io/ics-pa-gitbook/ics2025/2.3.html "")
+- `am-kernels`: to provide cpu testcases. [site: am-kernels](https://nju-projectn.github.io/ics-pa-gitbook/ics2025/2.2.html "")
+- `nemu`: reuse the `sdb` part and combine it with verilator simulation C++ files to create a single step debugger. [site: nemu](https://nju-projectn.github.io/ics-pa-gitbook/ics2025/1.3.html "")
 ## Software
 ### Verilator
 Employ `Verilator` for RTL compilation and C++ simulation source and header file generation.
 ### NVBoard
-Use `NVBoard` as virtual FPGA to test display logic.`https://github.com/NJU-ProjectN/nvboard`
+Use `NVBoard` as virtual FPGA to test display logic.[site: nvboard](https://github.com/NJU-ProjectN/nvboard "")
 ### Quartus Prime Lite
 Provide FPGA on-borad programmer and IP core generator.
 ### sv2v
-Convert SystemVerilog to Verilog HDL. `https://github.com/zachjs/sv2v`
+Convert SystemVerilog to Verilog HDL. [site: sv2v](https://github.com/zachjs/sv2v "")
 ## Runtime
 ### NVBorad or CLI
 #### Makefile Cmd
