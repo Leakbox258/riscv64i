@@ -8,6 +8,7 @@ module CPU
     input logic [DATA_WIDTH-1:0] pc_i,
 
     output logic [DATA_WIDTH-1:0] new_pc_o,
+    output logic [DATA_WIDTH-1:0] commit_pc_o,
     output logic [7:0] exceptions_o
 );
   parameter FetchError = 0, DecodeError = 1, MemAccessError = 2, ECALL = 3, EBREAK = 4;
@@ -322,6 +323,19 @@ module CPU
       .data_i(exmem_in),
       .data_o(exmem_out)
   );
+
+  always_ff @(posedge clk_i) begin
+    if (rst_i) begin
+      commit_pc_o <= 0;
+    end else if (exmem_in.enable) begin
+      commit_pc_o <= pcn_ex;
+    end
+  end
+
+  /// Display
+  always_ff @(posedge clk_i) begin
+    $strobe("EXU: committing PC: %08h", commit_pc_o);
+  end
 
   // =======================================================================
   // 5. MEM 1 (accessing ram)

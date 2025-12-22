@@ -5,14 +5,14 @@ module riscv64i #(
     input clk,
     input rst,
 
-    output [6:0] seg0,
-    output [6:0] seg1,
-    output [6:0] seg2,
-    output [6:0] seg3,
-    output [6:0] seg4,
-    output [6:0] seg5,
-    output [6:0] seg6,
-    output [6:0] seg7
+    output [7:0] seg0,
+    output [7:0] seg1,
+    output [7:0] seg2,
+    output [7:0] seg3,
+    output [7:0] seg4,
+    output [7:0] seg5,
+    output [7:0] seg6,
+    output [7:0] seg7
 );
   /* Interrupt code, which will display on the segs with 3 horizon lines */
 
@@ -23,7 +23,7 @@ module riscv64i #(
   parameter Anormaly = 2;
 
   logic [7:0] exception;
-  logic [DATA_WIDTH-1:0] pc, new_pc;
+  logic [DATA_WIDTH-1:0] pc, new_pc, commit_pc;
 
   /* verilator public_module */
   PC Pc (
@@ -41,6 +41,7 @@ module riscv64i #(
       .pc_i (pc),
 
       .new_pc_o(new_pc),
+      .commit_pc_o(commit_pc),
       .exceptions_o(exception)
   );
 
@@ -48,18 +49,18 @@ module riscv64i #(
   Display display (
       .clk_i(clk),
       .rst_i(rst),
-      .display_i(pc[INST_WIDTH-1:0]),
+      .display_i(commit_pc[INST_WIDTH-1:0]),
       .segs_reg(segs)
   );
 
-  assign seg0 = segs[0][6:0];
-  assign seg1 = segs[1][6:0];
-  assign seg2 = segs[2][6:0];
-  assign seg3 = segs[3][6:0];
-  assign seg4 = segs[4][6:0];
-  assign seg5 = segs[5][6:0];
-  assign seg6 = segs[6][6:0];
-  assign seg7 = segs[7][6:0];
+  assign seg0 = segs[0];
+  assign seg1 = segs[1];
+  assign seg2 = segs[2];
+  assign seg3 = segs[3];
+  assign seg4 = segs[4];
+  assign seg5 = segs[5];
+  assign seg6 = segs[6];
+  assign seg7 = segs[7];
 
   /* monitor state */
   parameter RST = 0, NORMAL = 1, HALT = 2, ERROR = 3;

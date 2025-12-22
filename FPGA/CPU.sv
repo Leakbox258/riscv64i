@@ -8,6 +8,7 @@ module CPU
     input logic [DATA_WIDTH-1:0] pc_i,
 
     output logic [DATA_WIDTH-1:0] new_pc_o,
+    output logic [DATA_WIDTH-1:0] commit_pc_o,
     output logic [7:0] exceptions_o,
     output logic [INST_WIDTH-1:0] inst_o
 );
@@ -103,7 +104,7 @@ module CPU
 
   assign ifid_in.enable = !rst_i & !flush_persistence;
 
-  /// Debug
+  /// for Debug
   assign inst_o = ifid_in.Inst;
 
   IFID ifid_reg (
@@ -326,6 +327,14 @@ module CPU
       .data_i(exmem_in),
       .data_o(exmem_out)
   );
+
+  always_ff @(posedge clk_i) begin
+    if (rst_i) begin
+      commit_pc_o <= 0;
+    end else if (exmem_in.enable) begin
+      commit_pc_o <= pcn_ex;
+    end
+  end
 
   // =======================================================================
   // 5. MEM 1 (accessing ram)

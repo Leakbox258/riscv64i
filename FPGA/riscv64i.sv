@@ -31,7 +31,7 @@ module riscv64i #(
 
   wire syst_rst = ~lock | ~rst;
   logic [7:0] exception;
-  logic [DATA_WIDTH-1:0] pc, new_pc;
+  logic [DATA_WIDTH-1:0] pc, new_pc, commit_pc;
   logic [INST_WIDTH-1:0] inst;
 
 
@@ -51,15 +51,16 @@ module riscv64i #(
       .pc_i (pc),
 
       .new_pc_o(new_pc),
-      .exceptions_o(exception),
-      .inst_o(inst)
+      .commit_pc_o(commit_pc),
+      .exceptions_o(exception)
+      //   .inst_o(inst)
   );
 
   wire [7:0] segs[7:0];
   Display display (
       .clk_i(clk_pll),
       .rst_i(syst_rst),
-      .display_i(pc[INST_WIDTH-1:0]),
+      .display_i(commit_pc[INST_WIDTH-1:0]),
       .segs_reg(segs)
   );
 

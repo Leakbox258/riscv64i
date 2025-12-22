@@ -10,7 +10,7 @@ module Display #(
   reg [7:0] segs_combine[8];
 
 
-  /// NVBorad
+  /// NVBoard
   //   parameter   
   //             SEGNONE = ~(8'b00000000),
   //             SEGERROR = ~(8'b10010010),
