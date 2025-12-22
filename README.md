@@ -56,8 +56,7 @@ Convert SystemVerilog to Verilog HDL. `https://github.com/zachjs/sv2v`
 ## Example
 ### dummy app
 ```asm
-
-/home/leakbox/workspace/verilog/ysyx-workbench/npc/build/dummy-riscv64-npc.elf：     文件格式 elf64-littleriscv
+./build/dummy-riscv64-npc.elf：     文件格式 elf64-littleriscv
 
 
 Disassembly of section .text:
