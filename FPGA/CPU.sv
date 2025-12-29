@@ -265,7 +265,8 @@ module CPU
       .A_i(alu_A),
       .B_i(alu_B),
       .opcode_i(ALUOp),
-      .C_o(alu_C)
+      .C_o(alu_C),
+      .cmp_o(cmp)
   );
 
   wire [DATA_WIDTH-1:0] taken, none_taken;
@@ -293,13 +294,14 @@ module CPU
             Rs1_BrJl, Imm_EXU, taken, none_taken);
   end
 
+  wire cmp;
   PCN Pcn (
       .specinst_i(idex_out.SpecInst),
       .detail_i(idex_out.Detail),
       .take_target(taken),
       .nonetake_target(none_taken),
 
-      .cmp_i(alu_C[0]),
+      .cmp_i(cmp),
       .pcn_o(pcn_ex)
   );
 
