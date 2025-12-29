@@ -1,4 +1,5 @@
-# riscv64i: A 64 bit RISC-V Processor
+# riscv64i
+A 64 bit RISC-V Processor
 ## Overview
 `riscv64i` is a 64-bit RISC-V processor core running on FPGA. The processor evolves a multi-stage pipeline (to be specific, 8-stage) and single issue per cycle.
 ## Pipeline
