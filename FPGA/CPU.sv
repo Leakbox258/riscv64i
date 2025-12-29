@@ -23,7 +23,7 @@ module CPU
   logic [INST_WIDTH-1:0] inst_raw;
   logic [INST_WIDTH-1:0] inst_safe;
 
-  /* (* keep = 1 *) */ logic [DATA_WIDTH-1:0] mem_addr_exmem;
+  logic [DATA_WIDTH-1:0] mem_addr_exmem;
 
   logic [DATA_WIDTH-1:0] pc_delayed;
   always_ff @(posedge clk_i) begin
@@ -81,8 +81,7 @@ module CPU
       .unalign_access(exception[MemAccessError])
   );
 
-  // replace failed inst with nop
-  assign inst_safe = flush_persistence ? 32'h00000013 : inst_raw;
+  assign inst_safe = flush_persistence ? 32'h00000000 : inst_raw;
 
   logic [INST_WIDTH-1:0] inst_final;
   IFU ifu (
@@ -129,7 +128,7 @@ module CPU
   assign idex_in.RegData[IDX_RS1] = GprReadRs1;
   assign idex_in.RegData[IDX_RS2] = GprReadRs2;
 
-  /* (* keep = 1 *) */ wire [INST_WIDTH-1:0] inst_IDU;
+  wire [INST_WIDTH-1:0] inst_IDU;
   assign inst_IDU = ifid_out.Inst;
 
   IDU idu (
@@ -237,9 +236,9 @@ module CPU
 
 
   logic [DATA_WIDTH-1:0] ExMuxAluA, ExMuxAluB;
-  /* (* keep = 1 *) */ wire ers1, ers2;
-  /* (* keep = 1 *) */ wire [DATA_WIDTH-1:0] Rs1_EXU, Rs2_EXU, Imm_EXU;
-  /* (* keep = 1 *) */ wire [DATA_WIDTH-1:0] pc;
+  wire ers1, ers2;
+  wire [DATA_WIDTH-1:0] Rs1_EXU, Rs2_EXU, Imm_EXU;
+  wire [DATA_WIDTH-1:0] pc;
   assign ers1 = idex_out.Enable[IDX_RS1];
   assign ers2 = idex_out.Enable[IDX_RS2];
   assign Rs1_EXU = idex_out.RegData[IDX_RS1];
@@ -261,7 +260,7 @@ module CPU
       .alu_B_o(ExMuxAluB)
   );
 
-  /* (* keep = 1 *) */ wire [4:0] ALUOp = idex_out.ALUOp;
+  wire [4:0] ALUOp = idex_out.ALUOp;
   ALU Alu (
       .A_i(alu_A),
       .B_i(alu_B),
@@ -269,7 +268,7 @@ module CPU
       .C_o(alu_C)
   );
 
-  /* (* keep = 1 *) */ wire [DATA_WIDTH-1:0] taken, none_taken;
+  wire [DATA_WIDTH-1:0] taken, none_taken;
   BRJL brjl (
       .pc(pc),
       .specinst(idex_out.SpecInst),
@@ -562,7 +561,7 @@ module CPU
   // Flush
   // ======================================================================= 
   logic flush_if, flush_id;
-  /* (* keep = 1 *) */ wire [DATA_WIDTH-1:0] PCP_FLUSH, PCN_FLUSH;
+  wire [DATA_WIDTH-1:0] PCP_FLUSH, PCN_FLUSH;
   assign PCP_FLUSH = none_taken;
   assign PCN_FLUSH = pcn_ex;
 
