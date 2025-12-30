@@ -27,29 +27,29 @@ module riscv64i #(
 
   /* verilator public_module */
   PC Pc (
-      .clk_i(clk),
-      .ewrite_i(state == NORMAL),
-      .rst_i(rst),
-      .data_i(new_pc),
-      .pc_o(pc)
+      .clk(clk),
+      .EnWrite(state == NORMAL),
+      .rst(rst),
+      .wdata(new_pc),
+      .rdata(pc)
   );
 
   /* verilator public_module */
   CPU Cpu (
-      .clk_i(clk),
-      .rst_i(rst),
-      .pc_i (pc),
+      .clk(clk),
+      .rst(rst),
+      .pc (pc),
 
-      .new_pc_o(new_pc),
-      .commit_pc_o(commit_pc),
-      .exceptions_o(exception)
+      .new_pc(new_pc),
+      .commit_pc(commit_pc),
+      .exceptions(exception)
   );
 
   wire [7:0] segs[7:0];
   Display display (
-      .clk_i(clk),
-      .rst_i(rst),
-      .display_i(commit_pc[INST_WIDTH-1:0]),
+      .clk(clk),
+      .rst(rst),
+      .display(commit_pc[INST_WIDTH-1:0]),
       .segs_reg(segs)
   );
 

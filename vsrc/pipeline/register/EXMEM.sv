@@ -3,25 +3,25 @@
 module EXMEM
   import pipeline_pkg::*;
 (
-    input clk_i,
-    input rst_i,
+    input clk,
+    input rst,
 
-    input  EXMEM_Pipe_t data_i,
-    output EXMEM_Pipe_t data_o
+    input  EXMEM_Pipe_t wdata,
+    output EXMEM_Pipe_t rdata
 );
 
   EXMEM_Pipe_t next_data;
 
   always_comb begin
-    if (rst_i) begin
+    if (rst) begin
       next_data = 0;
     end else begin
-      next_data = data_i;
+      next_data = wdata;
     end
   end
 
-  always_ff @(posedge clk_i) begin
-    data_o <= next_data;
+  always_ff @(posedge clk) begin
+    rdata <= next_data;
   end
 
 endmodule

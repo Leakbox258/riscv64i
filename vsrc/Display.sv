@@ -1,9 +1,9 @@
 module Display #(
     DISPLAY_WIDTH = 32
 ) (
-    input clk_i,
-    input rst_i,
-    input [DISPLAY_WIDTH-1:0] display_i,
+    input clk,
+    input rst,
+    input [DISPLAY_WIDTH-1:0] display,
 
     output reg [7:0] segs_reg[7:0]
 );
@@ -78,13 +78,13 @@ module Display #(
 
     /// Display 
     for (int k = 0; k < 8; k++) begin
-      segs_combine[k] = get_hex_seg(display_i[k*4+:4]);
+      segs_combine[k] = get_hex_seg(display[k*4+:4]);
     end
 
   end
 
-  always_ff @(posedge clk_i) begin
-    if (rst_i) begin
+  always_ff @(posedge clk) begin
+    if (rst) begin
       for (int k = 0; k < 8; k++) segs_reg[k] <= SEGNONE;
     end else begin
       for (int k = 0; k < 8; k++) segs_reg[k] <= segs_combine[k];
