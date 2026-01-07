@@ -53,7 +53,22 @@ Convert SystemVerilog to Verilog HDL. [site: sv2v](https://github.com/zachjs/sv2
   configure can be found as `FPGA/resource/RAM.v`, and the initial file is `app.mif`.
 - PLL - ALTPLL<br>
   configure can be found as `FPGA/resource/PLL.v`, but basically the fequency remain 50MHZ as DE2-115 default. 
-
+## Debug
+This project support debug mode on CLI, which was developed base on `3rd-party-nemu`. You can tap `help` in CLI for more usages.<br>
+Here are functions currently support.
+- `help`: Display information about all supported commands
+- `c`: Continue the execution of the program
+- `q`: Quit
+- `si`: Step an instruction
+- `info <MODE>`: Display informations. Replace `<MODE>` with `r` to print PC's and registers' values.
+- `xm <NUMBER> <ADDR>`: Scan and dispaly a series of **Word** size datas, `<ADDR>` has to be a hex number.
+- `xi <ADDR>`: Scan and display an instruction. (no disassembler now)
+- `pipe <PIPELINE_REG>`: Display critical infos stored in certain pipeline registers. Eg: `ifid-in`, `ifid-out`.
+- `pipea`: Display most of pipeline registers.
+- `b <ADDR>`: Insert breakpoint. This function is built by a software method, meaning that it'll do no modify on memory.
+- `w <ADDR>/<REG>`: Insert watchpoint on somewhere of a **Word** or a register.
+- `wb <NUMBER> <ADDR>`: **b** means batch.
+View `csrc/src/sdb/sdb.cpp` for more infomation.
 ## Example
 ### dummy app
 ```asm
