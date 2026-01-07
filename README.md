@@ -68,6 +68,7 @@ Here are functions currently support.
 - `b <ADDR>`: Insert breakpoint. This function is built by a software method, meaning that it'll do no modify on memory.
 - `w <ADDR>/<REG>`: Insert watchpoint on somewhere of a **Word** or a register.
 - `wb <NUMBER> <ADDR>`: **b** means batch.
+
 View `csrc/src/sdb/sdb.cpp` for more infomation.
 ## Example
 ### dummy app
