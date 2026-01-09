@@ -4,7 +4,7 @@ module CodeROM #(
     ROM_SIZE   = 16
 ) (
     input [ADDR_WIDTH-1:0] addr_i,
-    output logic [DATA_WIDTH-1:0] data_o,
+    output logic [DATA_WIDTH-1:0] rdata,
     output logic illegal_access_o
 );
 
@@ -18,10 +18,10 @@ module CodeROM #(
   always_comb begin
     if (addr_i[1:0] == 2'b0) begin
       illegal_access_o = 0;
-      data_o = rom_[addr_i[ROM_SIZE-1:0]/4];
+      rdata = rom_[addr_i[ROM_SIZE-1:0]/4];
     end else begin
       illegal_access_o = 1;  // unalign
-      data_o = 0;
+      rdata = 0;
     end
   end
 

@@ -3,14 +3,13 @@
 module CPU
   import pipeline_pkg::*;
 (
-    input logic clk_i,
-    input logic rst_i,
-    input logic [DATA_WIDTH-1:0] pc_i,
+    input logic clk,
+    input logic rst,
+    input logic [DATA_WIDTH-1:0] pc,
 
-    output logic [DATA_WIDTH-1:0] new_pc_o,
-    output logic [DATA_WIDTH-1:0] commit_pc_o,
-    output logic [7:0] exceptions_o,
-    output logic [INST_WIDTH-1:0] inst_o
+    output logic [DATA_WIDTH-1:0] new_pc,
+    output logic [DATA_WIDTH-1:0] commit_pc,
+    output logic [7:0] exceptions
 );
   parameter FetchError = 0, DecodeError = 1, MemAccessError = 2, ECALL = 3, EBREAK = 4;
   logic [7:0] exception;
@@ -26,18 +25,18 @@ module CPU
   logic [DATA_WIDTH-1:0] mem_addr_exmem;
 
   logic [DATA_WIDTH-1:0] pc_delayed;
-  always_ff @(posedge clk_i) begin
-    if (rst_i) begin
+  always_ff @(posedge clk) begin
+    if (rst) begin
       pc_delayed <= 0;
     end else if (!stall) begin
-      pc_delayed <= pc_i;
+      pc_delayed <= pc;
     end
   end
 
   logic flush_persistence;
 
-  always_ff @(posedge clk_i) begin
-    if (rst_i) begin
+  always_ff @(posedge clk) begin
+    if (rst) begin
       flush_persistence <= 1'b0;
     end else begin
       if (prediction_failed) begin
@@ -50,16 +49,16 @@ module CPU
 
   logic stall_persistence;
   logic [INST_WIDTH-1:0] inst_delay;
-  always_ff @(posedge clk_i) begin
-    if (rst_i) begin
+  always_ff @(posedge clk) begin
+    if (rst) begin
       stall_persistence <= 1'b0;
     end else begin
       stall_persistence <= stall;
     end
   end
 
-  always_ff @(posedge clk_i) begin
-    if (rst_i) begin
+  always_ff @(posedge clk) begin
+    if (rst) begin
       inst_delay <= 0;
     end else if (!stall_persistence) begin
       inst_delay <= inst_safe;
@@ -67,26 +66,28 @@ module CPU
   end
 
   MemControl ram (
-      .clk(clk_i),
-      .addr_i(mem_addr_exmem),
-      .pc_i(pc_i),
-      .enwr_i(exmem_out.Mem_REn ? 1'b1 : 1'b0),
-      .En_i(exmem_out.Mem_REn | exmem_out.Mem_WEn),
-      .data_i(memwrite_mem1),
-      .wid_i(exmem_out.Detail),
+      .clk(clk),
+      .addr(mem_addr_exmem),
+      .pc(pc),
+      .enwr(exmem_out.Mem_REn ? 1'b1 : 1'b0),
+      .En(exmem_out.Mem_REn | exmem_out.Mem_WEn),
+      .wdata(memwrite_mem1),
+      .wid(exmem_out.Detail),
 
-      .data_o(memdata_mem),
-      .inst_o(inst_raw),
-      .illegal_access_o(exception[FetchError]),
+      .rdata(memdata_mem),
+      .rinst(inst_raw),
+      .illegal_access(exception[FetchError]),
       .unalign_access(exception[MemAccessError])
   );
 
+  // replace failed inst with all 0
+  // ifid_out.enable will be false, so '0 won't be decode
   assign inst_safe = flush_persistence ? 32'h00000000 : inst_raw;
 
   logic [INST_WIDTH-1:0] inst_final;
   IFU ifu (
-      .data_i(inst_safe),
-      .inst_o(inst_final)
+      .data(inst_safe),
+      .inst(inst_final)
   );
 
   // =======================================================================
@@ -101,20 +102,17 @@ module CPU
   logic fetch_error_safe;
   assign fetch_error_safe = flush_persistence ? 1'b0 : exception[FetchError];
 
-  assign ifid_in.enable = !rst_i & !flush_persistence;
-
-  /// for Debug
-  assign inst_o = ifid_in.Inst;
+  assign ifid_in.enable   = !rst & !flush_persistence;
 
   IFID ifid_reg (
-      .clk_i(clk_i),
-      .rst_i(rst_i),
+      .clk(clk),
+      .rst(rst),
 
-      .flush_i(flush_if),
-      .stall_i(stall),
+      .flush(flush_if),
+      .stall(stall),
 
-      .data_i(ifid_in),
-      .data_o(ifid_out)
+      .wdata(ifid_in),
+      .rdata(ifid_out)
   );
 
   // =======================================================================
@@ -132,23 +130,23 @@ module CPU
   assign inst_IDU = ifid_out.Inst;
 
   IDU idu (
-      .inst_i(inst_IDU),
+      .rinst(inst_IDU),
 
-      .enable_o  (idex_in.Enable),
-      .aluop_o   (idex_in.ALUOp),
-      .specinst_o(idex_in.SpecInst),
-      .regi_o    (idex_in.RegIdx),
-      .detail_o  (idex_in.Detail),
+      .enables(idex_in.Enable),
+      .aluop(idex_in.ALUOp),
+      .specinst(idex_in.SpecInst),
+      .registers(idex_in.RegIdx),
+      .details(idex_in.Detail),
 
-      .decode_error_o (exception[DecodeError]),
-      .env_exception_o(exception[EBREAK:ECALL])
+      .decode_error (exception[DecodeError]),
+      .env_exception(exception[EBREAK:ECALL])
   );
 
   logic [DATA_WIDTH-1:0] GprReadRs1, GprReadRs2;
 
   IMMGen immgen (
-      .inst_i(inst_IDU),
-      .imme_o(idex_in.Imm)
+      .rinst(inst_IDU),
+      .imme (idex_in.Imm)
   );
 
   // =======================================================================
@@ -156,13 +154,13 @@ module CPU
   // =======================================================================
 
   IDEX idex_reg (
-      .clk_i  (clk_i),
-      .rst_i  (rst_i),
-      .stall_i(stall),
-      .flush_i(flush_id),
+      .clk  (clk),
+      .rst  (rst),
+      .stall(stall),
+      .flush(flush_id),
 
-      .data_i(idex_in),
-      .data_o(idex_out)
+      .wdata(idex_in),
+      .rdata(idex_out)
   );
 
   // =======================================================================
@@ -238,40 +236,40 @@ module CPU
   logic [DATA_WIDTH-1:0] ExMuxAluA, ExMuxAluB;
   wire ers1, ers2;
   wire [DATA_WIDTH-1:0] Rs1_EXU, Rs2_EXU, Imm_EXU;
-  wire [DATA_WIDTH-1:0] pc;
+  wire [DATA_WIDTH-1:0] pc_ex;
   assign ers1 = idex_out.Enable[IDX_RS1];
   assign ers2 = idex_out.Enable[IDX_RS2];
   assign Rs1_EXU = idex_out.RegData[IDX_RS1];
   assign Rs2_EXU = idex_out.RegData[IDX_RS2];
   assign Imm_EXU = idex_out.Imm;
-  assign pc = idex_out.PC;
+  assign pc_ex = idex_out.PC;
 
   EXU Exu (
-      .ers1_i(ers1),
-      .ers2_i(ers2),
-      .specinst_i(idex_out.SpecInst),
+      .ers1(ers1),
+      .ers2(ers2),
+      .specinst(idex_out.SpecInst),
 
-      .rs1_i (Rs1_EXU),
-      .rs2_i (Rs2_EXU),
-      .pc_i  (pc),
-      .imme_i(Imm_EXU),
+      .rs1 (Rs1_EXU),
+      .rs2 (Rs2_EXU),
+      .pc  (pc_ex),
+      .imme(Imm_EXU),
 
-      .alu_A_o(ExMuxAluA),
-      .alu_B_o(ExMuxAluB)
+      .alu_A(ExMuxAluA),
+      .alu_B(ExMuxAluB)
   );
 
   wire [4:0] ALUOp = idex_out.ALUOp;
   ALU Alu (
-      .A_i(alu_A),
-      .B_i(alu_B),
-      .opcode_i(ALUOp),
-      .C_o(alu_C),
-      .cmp_o(cmp)
+      .A(alu_A),
+      .B(alu_B),
+      .opcode(ALUOp),
+      .C(alu_C),
+      .cmp(cmp)
   );
 
   wire [DATA_WIDTH-1:0] taken, none_taken;
   BRJL brjl (
-      .pc(pc),
+      .pc(pc_ex),
       .specinst(idex_out.SpecInst),
       .rs1(Rs1_BrJl),  // may forward
       .imme(Imm_EXU),
@@ -281,7 +279,7 @@ module CPU
   );
 
   /// Display
-  always_ff @(posedge clk_i) begin
+  always_ff @(posedge clk) begin
     $strobe(
         "ALU: A: 0x%0h, B: 0x%0h, C: 0x%0h, Rs1: 0x%0h, Rs2: 0x%0h, Imm: 0x%0h, AForwardFromMem1: %s, AForwardFromMem2: %s, AForwardFromMem3: %s, AForwardFromWB: %s, BForwardFromMem1: %s, BForwardFromMem2: %s, BForwardFromMem3: %s, BForwardFromWB: %s",
         alu_A, alu_B, alu_C, idex_out.RegData[IDX_RS1], idex_out.RegData[IDX_RS2], idex_out.Imm,
@@ -296,20 +294,19 @@ module CPU
 
   wire cmp;
   PCN Pcn (
-      .specinst_i(idex_out.SpecInst),
-      .detail_i(idex_out.Detail),
+      .specinst(idex_out.SpecInst),
+      .detail(idex_out.Detail),
       .take_target(taken),
       .nonetake_target(none_taken),
 
-      .cmp_i(cmp),
-      .pcn_o(pcn_ex)
+      .cmp(cmp),
+      .pcn(pcn_ex)
   );
 
   // =======================================================================
   // EX/MEM
   // =======================================================================
-  EXMEM_Pipe_t exmem_in;
-  EXMEM_Pipe_t exmem_out;
+  EXMEM_Pipe_t exmem_in, exmem_out;
 
   assign exmem_in.PC = idex_out.PC;
   assign exmem_in.PC_Next = pcn_ex;
@@ -322,19 +319,24 @@ module CPU
   assign exmem_in.enable = idex_out.enable;
 
   EXMEM exmem_reg (
-      .clk_i(clk_i),
-      .rst_i(rst_i),
+      .clk(clk),
+      .rst(rst),
 
-      .data_i(exmem_in),
-      .data_o(exmem_out)
+      .wdata(exmem_in),
+      .rdata(exmem_out)
   );
 
-  always_ff @(posedge clk_i) begin
-    if (rst_i) begin
-      commit_pc_o <= 0;
+  always_ff @(posedge clk) begin
+    if (rst) begin
+      commit_pc <= 0;
     end else if (exmem_in.enable) begin
-      commit_pc_o <= pcn_ex;
+      commit_pc <= pcn_ex;
     end
+  end
+
+  /// Display
+  always_ff @(posedge clk) begin
+    $strobe("EXU: committing PC: %08h", commit_pc);
   end
 
   // =======================================================================
@@ -354,7 +356,7 @@ module CPU
   assign mem_addr_exmem = exmem_out.ALU_Result;
 
   /// display
-  always_ff @(posedge clk_i) begin
+  always_ff @(posedge clk) begin
     $strobe("MEM1: Ram%0s, Addr: 0x%0h, WData: 0x%0h",
             exmem_out.Mem_REn ? " read" : (exmem_out.Mem_WEn ? " write" : " non access"),
             exmem_out.ALU_Result, exmem_out.Store_Data);
@@ -373,10 +375,10 @@ module CPU
   assign mem1mem2_in.enable = exmem_out.enable;
 
   MEM1MEM2 mem1mem2_reg (
-      .clk_i(clk_i),
-      .rst(rst_i),
-      .data_i(mem1mem2_in),
-      .data_o(mem1mem2_out)
+      .clk  (clk),
+      .rst  (rst),
+      .wdata(mem1mem2_in),
+      .rdata(mem1mem2_out)
   );
 
   // =======================================================================
@@ -388,19 +390,19 @@ module CPU
   wire [DATA_WIDTH-1:0] memdata_mem;
 
   LD ld (
-      .data_i(memdata_mem),
+      .wdata(memdata_mem),
       .wid_i(mem1mem2_out.wid),
       .byteena_i(mem1mem2_out.Mem_Addr[2:0]),
 
-      .data_o(mem_read)
+      .rdata(mem_read)
   );
 
   MEM2MEM3 mem2mem3_reg (
-      .clk_i(clk_i),
-      .rst_i(rst_i),
-      .data_i(mem1mem2_out),
-      .MemRead_i(mem_read),  /* mem_read or memdata_mem */
-      .data_o(mem2mem3_out)
+      .clk(clk),
+      .rst(rst),
+      .wdata(mem1mem2_out),
+      .wMemRead(mem_read),  /* mem_read */
+      .rdata(mem2mem3_out)
   );
 
   // =======================================================================
@@ -417,10 +419,10 @@ module CPU
   assign memwb_in.WB_Data = mem2mem3_out.Mem_REn ? mem2mem3_out.MemRead : mem2mem3_out.ALU_Result;
 
   MEMWB memwb_reg (
-      .clk_i (clk_i),
-      .rst_i (rst_i),
-      .data_i(memwb_in),
-      .data_o(memwb_out)
+      .clk  (clk),
+      .rst  (rst),
+      .wdata(memwb_in),
+      .rdata(memwb_out)
   );
 
   /// Display
@@ -434,21 +436,21 @@ module CPU
 
   /* verilator public_module */
   GPR gpr (
-      .clk  (clk_i),
-      .rs1_i(idex_in.RegIdx[IDX_RS1]),  // ID
-      .rs2_i(idex_in.RegIdx[IDX_RS2]),  // ID
+      .clk(clk),
+      .rs1(idex_in.RegIdx[IDX_RS1]),  // ID
+      .rs2(idex_in.RegIdx[IDX_RS2]),  // ID
 
-      .rd_i(memwb_out.RD_Addr),  // WB
-      .write_enable_i(memwb_out.Reg_WEn),  // WB
-      .data_i(memwb_out.WB_Data),
+      .rd(memwb_out.RD_Addr),  // WB
+      .write_enable(memwb_out.Reg_WEn),  // WB
+      .wdata(memwb_out.WB_Data),
 
-      .rs1_data_o(GprReadRs1),
-      .rs2_data_o(GprReadRs2)
+      .rs1_rdata(GprReadRs1),
+      .rs2_rdata(GprReadRs2)
 
   );
 
   /// Display
-  always_ff @(posedge clk_i) begin
+  always_ff @(posedge clk) begin
     $strobe("GPR: Cycle %0d, GPR read x%0d and x%0d, GPR write x%0d, WB_Data 0x%0h", cycle,
             idex_in.RegIdx[IDX_RS1], idex_in.RegIdx[IDX_RS2], memwb_out.RD_Addr, memwb_out.WB_Data);
   end
@@ -456,13 +458,13 @@ module CPU
   // =======================================================================
   // Exceptions
   // =======================================================================
-  always_ff @(posedge clk_i) begin
-    if (rst_i) exceptions_o <= 8'b0;
+  always_ff @(posedge clk) begin
+    if (rst) exceptions <= 8'b0;
     else begin
-      exceptions_o[FetchError] <= exception[FetchError] & ifid_in.enable & !fetch_error_safe;
-      exceptions_o[DecodeError] <= exception[DecodeError] & idex_in.enable;
-      exceptions_o[MemAccessError] <= exception[MemAccessError] & exmem_out.enable & (exmem_out.Mem_WEn || exmem_out.Mem_REn);
-      exceptions_o[EBREAK:ECALL] <= exception[EBREAK:ECALL] & {2{exmem_in.enable}};
+      exceptions[FetchError] <= exception[FetchError] & ifid_in.enable & !fetch_error_safe;
+      exceptions[DecodeError] <= exception[DecodeError] & idex_in.enable;
+      exceptions[MemAccessError] <= exception[MemAccessError] & exmem_out.enable & (exmem_out.Mem_WEn || exmem_out.Mem_REn);
+      exceptions[EBREAK:ECALL] <= exception[EBREAK:ECALL] & {2{exmem_in.enable}};
     end
   end
 
@@ -584,7 +586,7 @@ module CPU
   );
 
   /// Display
-  always_ff @(posedge clk_i) begin
+  always_ff @(posedge clk) begin
     $strobe("EXU: En: %d Predict Pc 0x%h, real Pc Next 0x%h", exmem_in.enable, exmem_in.PC + 4,
             exmem_in.PC_Next);
   end
@@ -601,18 +603,18 @@ module CPU
       next_pc = exmem_in.PC_Next;
       $strobe("EXU: Cycle %0d, Branch Prediction Failed, Next_PC: 0x%x", cycle, next_pc);
     end else if (stall) begin
-      next_pc = pc_i;
+      next_pc = pc;
       $strobe("IDU & EXU: Cycle %0d, Pipeline Stall, Next_PC: 0x%x", cycle, next_pc);
     end else begin
-      next_pc = pc_i + 4;
+      next_pc = pc + 4;
     end
 
-    new_pc_o = next_pc;
+    new_pc = next_pc;
   end
 
   /// Display
-  always_ff @(posedge clk_i) begin
-    if (rst_i) begin
+  always_ff @(posedge clk) begin
+    if (rst) begin
       cycle <= 32'b0;
     end else begin
       cycle <= cycle + 1;

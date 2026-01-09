@@ -2,20 +2,20 @@ module IDU #(
     INST_WIDTH = 32,
     RF_SIZE = 5
 ) (
-    input [INST_WIDTH-1:0] inst_i,
+    input [INST_WIDTH-1:0] rinst,
 
     /* controls */
-    output reg [4:0] enable_o,
+    output reg [4:0] enables,
 
-    output reg [4:0] aluop_o,
-    output reg [2:0] specinst_o,
+    output reg [4:0] aluop,
+    output reg [2:0] specinst,
 
     /* resources */
-    output [2:0][RF_SIZE-1:0] regi_o,
-    output [2:0] detail_o,
+    output [2:0][RF_SIZE-1:0] registers,
+    output [2:0] details,
 
-    output reg decode_error_o,
-    output reg [1:0] env_exception_o  // ebreak, ecall 
+    output reg decode_error,
+    output reg [1:0] env_exception  // ebreak, ecall 
 );
 
   /* Instruction Type */
@@ -57,169 +57,169 @@ module IDU #(
   wire [ 5:0] funct6;
   wire [ 6:0] funct7;
   wire [11:0] funct12;
-  reg  [ 2:0] decode_error;
+  reg  [ 2:0] decodeError;
 
-  assign opcode = inst_i[6:0];
-  assign funct3 = inst_i[14:12];
-  assign funct6 = inst_i[31:26];
-  assign funct7 = inst_i[31:25];
-  assign funct12 = inst_i[31:20];
+  assign opcode = rinst[6:0];
+  assign funct3 = rinst[14:12];
+  assign funct6 = rinst[31:26];
+  assign funct7 = rinst[31:25];
+  assign funct12 = rinst[31:20];
 
-  assign regi_o[RD] = inst_i[11:7];
-  assign regi_o[RS1] = inst_i[19:15];
-  assign regi_o[RS2] = inst_i[24:20];
-  assign detail_o = funct3;
+  assign registers[RD] = rinst[11:7];
+  assign registers[RS1] = rinst[19:15];
+  assign registers[RS2] = rinst[24:20];
+  assign details = funct3;
 
-  assign decode_error_o = |decode_error;
+  assign decode_error = |decodeError;
 
   /// get alu control signals 
   always_comb begin
     /// set default value
-    enable_o = 5'b0;
+    enables = 5'b0;
 
-    specinst_o = NO_SPEC;
+    specinst = NO_SPEC;
 
-    decode_error[1:0] = 2'b0;
-    env_exception_o = 2'b00;
+    decodeError[1:0] = 2'b0;
+    env_exception = 2'b00;
 
     case (opcode)
       Rty: begin
-        enable_o[RD]  = 1;
-        enable_o[RS1] = 1;
-        enable_o[RS2] = 1;
+        enables[RD]  = 1;
+        enables[RS1] = 1;
+        enables[RS2] = 1;
       end
       Ity: begin
-        enable_o[RD]  = 1;
-        enable_o[RS1] = 1;
+        enables[RD]  = 1;
+        enables[RS1] = 1;
       end
       R64ty: begin
-        enable_o[RD]  = 1;
-        enable_o[RS1] = 1;
-        enable_o[RS2] = 1;
+        enables[RD]  = 1;
+        enables[RS1] = 1;
+        enables[RS2] = 1;
       end
       I64ty: begin
-        enable_o[RD]  = 1;
-        enable_o[RS1] = 1;
+        enables[RD]  = 1;
+        enables[RS1] = 1;
       end
       Load: begin
-        enable_o[RD] = 1;
-        enable_o[RS1] = 1;
+        enables[RD] = 1;
+        enables[RS1] = 1;
         // calculate address
-        enable_o[MREAD] = 1;
+        enables[MREAD] = 1;
 
-        if (funct3 == 3'b111) decode_error[1] = 1;
+        if (funct3 == 3'b111) decodeError[1] = 1;
 
-        specinst_o = S_LOAD;
+        specinst = S_LOAD;
       end
       Store: begin
-        enable_o[RS1] = 1;
-        enable_o[RS2] = 1;
+        enables[RS1] = 1;
+        enables[RS2] = 1;
         // calculate addresss
-        enable_o[MWRITE] = 1;
+        enables[MWRITE] = 1;
 
-        if (funct3 == 3'b111) decode_error[1] = 1;
+        if (funct3 == 3'b111) decodeError[1] = 1;
 
-        specinst_o = S_STORE;
+        specinst = S_STORE;
       end
       Branch: begin
-        enable_o[RS1] = 1;
-        enable_o[RS2] = 1;
-        specinst_o = S_BR;
+        enables[RS1] = 1;
+        enables[RS2] = 1;
+        specinst = S_BR;
       end
       Jal: begin
-        enable_o[RD] = 1;
-        specinst_o   = S_JAL;
+        enables[RD] = 1;
+        specinst = S_JAL;
       end
       Jalr: begin
-        enable_o[RD] = 1;
-        enable_o[RS1] = 1;
+        enables[RD] = 1;
+        enables[RS1] = 1;
         // calculate address
-        specinst_o = S_JALR;
+        specinst = S_JALR;
       end
       Auipc: begin
-        enable_o[RD] = 1;
+        enables[RD] = 1;
 
-        specinst_o   = S_AUIPC;
+        specinst = S_AUIPC;
       end
       Lui: begin
-        enable_o[RD] = 1;
+        enables[RD] = 1;
 
-        specinst_o   = S_LUI;
+        specinst = S_LUI;
       end
       Env: begin
-        env_exception_o[0] = funct12 == 12'b0;
-        env_exception_o[1] = funct12 == 12'b1;
+        env_exception[0] = funct12 == 12'b0;
+        env_exception[1] = funct12 == 12'b1;
       end
-      default: decode_error[0] = 1;
+      default: decodeError[0] = 1;
     endcase
   end
 
   /// get alu opcode
   always_comb begin
-    decode_error[2] = 0;
-    aluop_o = ALU_ADD;
+    decodeError[2] = 0;
+    aluop = ALU_ADD;
 
     case (opcode)
 
       Rty: begin  // R-type
         case (funct3)
-          3'b000: aluop_o = (funct7 == 7'b0100000) ? ALU_SUB : ALU_ADD;
-          3'b111: aluop_o = ALU_AND;
-          3'b110: aluop_o = ALU_OR;
-          3'b100: aluop_o = ALU_XOR;
-          3'b010: aluop_o = ALU_SLT;
-          3'b011: aluop_o = ALU_SLTU;
-          3'b001: aluop_o = ALU_SLL;
-          3'b101: aluop_o = (funct7 == 7'b0100000) ? ALU_SRA : ALU_SRL;
+          3'b000: aluop = (funct7 == 7'b0100000) ? ALU_SUB : ALU_ADD;
+          3'b111: aluop = ALU_AND;
+          3'b110: aluop = ALU_OR;
+          3'b100: aluop = ALU_XOR;
+          3'b010: aluop = ALU_SLT;
+          3'b011: aluop = ALU_SLTU;
+          3'b001: aluop = ALU_SLL;
+          3'b101: aluop = (funct7 == 7'b0100000) ? ALU_SRA : ALU_SRL;
         endcase
       end
 
       Ity: begin  // I-type immediate ALU
         case (funct3)
-          3'b000: aluop_o = ALU_ADD;  // ADDI
-          3'b111: aluop_o = ALU_AND;
-          3'b110: aluop_o = ALU_OR;
-          3'b100: aluop_o = ALU_XOR;
-          3'b010: aluop_o = ALU_SLT;
-          3'b011: aluop_o = ALU_SLTU;
-          3'b001: aluop_o = ALU_SLL;  // SLLI
-          3'b101: aluop_o = (funct6 == 6'b010000) ? ALU_SRA : ALU_SRL;  // SRAI / SRLI
+          3'b000: aluop = ALU_ADD;  // ADDI
+          3'b111: aluop = ALU_AND;
+          3'b110: aluop = ALU_OR;
+          3'b100: aluop = ALU_XOR;
+          3'b010: aluop = ALU_SLT;
+          3'b011: aluop = ALU_SLTU;
+          3'b001: aluop = ALU_SLL;  // SLLI
+          3'b101: aluop = (funct6 == 6'b010000) ? ALU_SRA : ALU_SRL;  // SRAI / SRLI
         endcase
       end
 
       R64ty: begin
         case (funct3)
-          3'b000:  aluop_o = (funct7 == 7'b0) ? ALU_ADDW : ALU_SUBW;
-          3'b001:  aluop_o = ALU_SLLW;
-          3'b101:  aluop_o = (funct7 == 7'b0) ? ALU_SRLW : ALU_SRAW;
-          default: aluop_o = ALU_ADD;
+          3'b000:  aluop = (funct7 == 7'b0) ? ALU_ADDW : ALU_SUBW;
+          3'b001:  aluop = ALU_SLLW;
+          3'b101:  aluop = (funct7 == 7'b0) ? ALU_SRLW : ALU_SRAW;
+          default: aluop = ALU_ADD;
         endcase
       end
 
       I64ty: begin
         case (funct3)
-          3'b000:  aluop_o = ALU_ADDW;
-          3'b001:  aluop_o = ALU_SLLW;
-          3'b101:  aluop_o = (funct7 == 7'b0) ? ALU_SRLW : ALU_SRAW;
-          default: aluop_o = ALU_ADD;
+          3'b000:  aluop = ALU_ADDW;
+          3'b001:  aluop = ALU_SLLW;
+          3'b101:  aluop = (funct7 == 7'b0) ? ALU_SRLW : ALU_SRAW;
+          default: aluop = ALU_ADD;
         endcase
       end
 
-      Lui: aluop_o = ALU_COPY_B;  // S_LUI
-      Auipc: aluop_o = ALU_ADD;  // S_AUIPC (PC + imm)
-      Jal: aluop_o = ALU_ADD;  // S_JAL (PC + 4)
-      Jalr: aluop_o = ALU_ADD;  // S_JALR (PC + 4)
-      Load: aluop_o = ALU_ADD;  // Load (base + offset)
-      Store: aluop_o = ALU_ADD;  // Store (base + offset)
+      Lui: aluop = ALU_COPY_B;  // S_LUI
+      Auipc: aluop = ALU_ADD;  // S_AUIPC (PC + imm)
+      Jal: aluop = ALU_ADD;  // S_JAL (PC + 4)
+      Jalr: aluop = ALU_ADD;  // S_JALR (PC + 4)
+      Load: aluop = ALU_ADD;  // Load (base + offset)
+      Store: aluop = ALU_ADD;  // Store (base + offset)
       Branch: begin  // Branch (comparison)
         case (funct3)
-          B_EQ: aluop_o = ALU_EQ;
-          B_NE: aluop_o = ALU_EQ;
-          B_LT: aluop_o = ALU_SLT;
-          B_GE: aluop_o = ALU_SLT;
-          B_LTU: aluop_o = ALU_SLTU;
-          B_GEU: aluop_o = ALU_SLTU;
-          default: decode_error[2] = 1;
+          B_EQ: aluop = ALU_EQ;
+          B_NE: aluop = ALU_EQ;
+          B_LT: aluop = ALU_SLT;
+          B_GE: aluop = ALU_SLT;
+          B_LTU: aluop = ALU_SLTU;
+          B_GEU: aluop = ALU_SLTU;
+          default: decodeError[2] = 1;
         endcase
       end
       default: ;

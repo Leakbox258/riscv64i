@@ -1,11 +1,10 @@
 module IFU #(
-    INST_WIDTH = 32,
-    DATA_WIDTH = 64
+    INST_WIDTH = 32
 ) (
-    input  [INST_WIDTH-1:0] data_i,
-    output [INST_WIDTH-1:0] inst_o
+    input  [INST_WIDTH-1:0] data,
+    output [INST_WIDTH-1:0] inst
 );
 
-  assign inst_o = data_i;
+  assign inst = data;
 
 endmodule

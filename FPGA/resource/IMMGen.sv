@@ -3,8 +3,8 @@
 module IMMGen
   import utils_pkg::*;
 (
-    input [31:0] inst_i,
-    output logic [DATA_WIDTH-1:0] imme_o
+    input [31:0] rinst,
+    output logic [DATA_WIDTH-1:0] imme
 );
 
   /* Instruction Type */
@@ -24,50 +24,50 @@ module IMMGen
   // Env = 7'h73, // TODO: trap code
 
   wire [6:0] opcode;
-  assign opcode = inst_i[6:0];
+  assign opcode = rinst[6:0];
 
   always_comb begin
     case (opcode)
       Ity: begin
-        imme_o = sext_12(inst_i[31:20]);
+        imme = sext_12(rinst[31:20]);
       end
       I64ty: begin
-        imme_o = sext_12(inst_i[31:20]);
+        imme = sext_12(rinst[31:20]);
       end
       Load: begin
-        imme_o = sext_12(inst_i[31:20]);
+        imme = sext_12(rinst[31:20]);
       end
       Store: begin
-        imme_o = sext_12({inst_i[31:25], inst_i[11:7]});
+        imme = sext_12({rinst[31:25], rinst[11:7]});
       end
       Branch: begin
-        imme_o = sext_13({inst_i[31], inst_i[7], inst_i[30:25], inst_i[11:8]});
+        imme = sext_13({rinst[31], rinst[7], rinst[30:25], rinst[11:8]});
       end
       Jalr: begin
-        imme_o = sext_12(inst_i[31:20]);
+        imme = sext_12(rinst[31:20]);
       end
       Jal: begin  // 21
-        if (inst_i[31])
-          imme_o = {
-            {(DATA_WIDTH - 21) {1'b1}}, inst_i[31], inst_i[19:12], inst_i[20], inst_i[30:21], 1'b0
+        if (rinst[31])
+          imme = {
+            {(DATA_WIDTH - 21) {1'b1}}, rinst[31], rinst[19:12], rinst[20], rinst[30:21], 1'b0
           };
         else
-          imme_o = {
-            {(DATA_WIDTH - 21) {1'b0}}, inst_i[31], inst_i[19:12], inst_i[20], inst_i[30:21], 1'b0
+          imme = {
+            {(DATA_WIDTH - 21) {1'b0}}, rinst[31], rinst[19:12], rinst[20], rinst[30:21], 1'b0
           };
       end
       Auipc: begin
-        imme_o = sext_32({inst_i[31:12], 12'b0});  // << 12
+        imme = sext_32({rinst[31:12], 12'b0});  // << 12
       end
       Lui: begin
-        imme_o = sext_32({inst_i[31:12], 12'b0});  // << 12
+        imme = sext_32({rinst[31:12], 12'b0});  // << 12
       end
-      default: imme_o = 0;
+      default: imme = 0;
     endcase
   end
 
   //   initial begin
-  //     $monitor("IMMGen imme: %h", imme_o);
+  //     $monitor("IMMGen imme: %h", imme);
   //   end
 
 endmodule

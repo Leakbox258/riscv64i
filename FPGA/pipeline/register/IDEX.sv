@@ -3,29 +3,29 @@
 module IDEX
   import pipeline_pkg::*;
 (
-    input logic clk_i,
-    input logic rst_i,
-    input logic stall_i,
-    input logic flush_i,
+    input logic clk,
+    input logic rst,
+    input logic stall,
+    input logic flush,
 
-    input  IDEX_Pipe_t data_i,
-    output IDEX_Pipe_t data_o
+    input  IDEX_Pipe_t wdata,
+    output IDEX_Pipe_t rdata
 );
 
   IDEX_Pipe_t next_data;
 
   always_comb begin
-    if (rst_i) begin
+    if (rst) begin
       next_data = 0;
-    end else if (flush_i || stall_i) begin
+    end else if (flush || stall) begin
       next_data = 0;
     end else begin
-      next_data = data_i;
+      next_data = wdata;
     end
   end
 
-  always_ff @(posedge clk_i) begin
-    data_o <= next_data;
+  always_ff @(posedge clk) begin
+    rdata <= next_data;
   end
 
 endmodule

@@ -2,11 +2,11 @@
 module ALU
   import utils_pkg::*;
 (
-    input [DATA_WIDTH-1:0] A_i,
-    input [DATA_WIDTH-1:0] B_i,
-    input [4:0] opcode_i,
-    output logic [DATA_WIDTH-1:0] C_o,
-    output logic cmp_o
+    input [DATA_WIDTH-1:0] A,
+    input [DATA_WIDTH-1:0] B,
+    input [4:0] opcode,
+    output logic [DATA_WIDTH-1:0] C,
+    output logic cmp
 );
 
   /* ALU opcode */
@@ -21,8 +21,8 @@ module ALU
 
   /// Adder
   logic [DATA_WIDTH-1:0] Lhs, Rhs;
-  assign Lhs = A_i;
-  assign Rhs = (opcode_i == ALU_ADD || opcode_i == ALU_ADDW) ? B_i : ~B_i + 1;
+  assign Lhs = A;
+  assign Rhs = (opcode == ALU_ADD || opcode == ALU_ADDW) ? B : ~B + 1;
 
   logic [DATA_WIDTH/2-1:0] add32;
   logic carry;
@@ -36,38 +36,38 @@ module ALU
   /// Shifter
   logic fillbit;
   always_comb begin
-    case (opcode_i)
-      ALU_SRA:  fillbit = A_i[DATA_WIDTH-1];
-      ALU_SRAW: fillbit = A_i[DATA_WIDTH/2-1];
+    case (opcode)
+      ALU_SRA:  fillbit = A[DATA_WIDTH-1];
+      ALU_SRAW: fillbit = A[DATA_WIDTH/2-1];
       default:  fillbit = 1'b0;
     endcase
   end
 
   logic [5:0] shamt;
-  assign shamt = (opcode_i == ALU_SLL || opcode_i == ALU_SRL || opcode_i == ALU_SRA) ? B_i[5:0]: {1'b0, B_i[4:0]};
+  assign shamt = (opcode == ALU_SLL || opcode == ALU_SRL || opcode == ALU_SRA) ? B[5:0]: {1'b0, B[4:0]};
 
   logic [DATA_WIDTH-1:0] shed;
   always_comb begin
-    case (opcode_i)
+    case (opcode)
       ALU_SLL: begin
         for (int i = 0; i < DATA_WIDTH; i = i + 1) begin
-          shed[i] = A_i[DATA_WIDTH-1-i];
+          shed[i] = A[DATA_WIDTH-1-i];
         end
       end
       ALU_SLLW: begin
         for (int i = 0; i < DATA_WIDTH / 2; i = i + 1) begin
-          shed[i] = A_i[DATA_WIDTH/2-1-i];
+          shed[i] = A[DATA_WIDTH/2-1-i];
         end
         shed[DATA_WIDTH-1:DATA_WIDTH/2] = 32'b0;
       end
       ALU_SRLW: begin
-        shed = zext_32(A_i[DATA_WIDTH/2-1:0]);
+        shed = zext_32(A[DATA_WIDTH/2-1:0]);
       end
       ALU_SRAW: begin
-        shed = sext_32(A_i[DATA_WIDTH/2-1:0]);
+        shed = sext_32(A[DATA_WIDTH/2-1:0]);
       end
       default: begin
-        shed = A_i;
+        shed = A;
       end
     endcase
   end
@@ -76,7 +76,7 @@ module ALU
   assign shift = $signed({fillbit, shed}) >>> shamt;
   logic [DATA_WIDTH-1:0] shift64;
   always_comb begin
-    case (opcode_i)
+    case (opcode)
       ALU_SLL: begin
         for (int i = 0; i < DATA_WIDTH; i = i + 1) begin
           shift64[i] = shift[DATA_WIDTH-1-i];  // skip shift[DATA_WIDTH]
@@ -84,7 +84,7 @@ module ALU
       end
       ALU_SLLW: begin
         for (int i = 0; i < DATA_WIDTH / 2; i = i + 1) begin
-          shift64[i] = A_i[DATA_WIDTH/2-1-i];
+          shift64[i] = A[DATA_WIDTH/2-1-i];
         end
         shift64[DATA_WIDTH-1:DATA_WIDTH/2] = 32'b0;
       end
@@ -98,84 +98,84 @@ module ALU
 
   /// XOR
   logic [DATA_WIDTH-1:0] xor64;
-  assign xor64 = A_i ^ B_i;
+  assign xor64 = A ^ B;
 
   /// Mux
   always_comb begin
 
-    case (opcode_i)
+    case (opcode)
       ALU_ADD: begin
-        C_o = add64;
+        C = add64;
       end
       ALU_SUB: begin
-        C_o = add64;
+        C = add64;
       end
       ALU_OR: begin
-        C_o = A_i | B_i;
+        C = A | B;
       end
       ALU_AND: begin
-        C_o = A_i & B_i;
+        C = A & B;
       end
       ALU_XOR: begin
-        C_o = xor64;
+        C = xor64;
       end
       ALU_SLL: begin
         /// RV64I
-        C_o = shift64;
+        C = shift64;
       end
       ALU_SRL: begin
         /// RV64I
-        C_o = shift64;  /// TODO: need extra testcase
+        C = shift64;  /// TODO: need extra testcase
       end
       ALU_SRA: begin
         /// RV64I
-        C_o = shift64;  /// TODO: need extra testcase
+        C = shift64;  /// TODO: need extra testcase
       end
       ALU_EQ: begin
-        C_o = {{DATA_WIDTH - 1{1'b0}}, xor64 == 0};
+        C = {{DATA_WIDTH - 1{1'b0}}, xor64 == 0};
       end
       ALU_SLT: begin
-        C_o = {{DATA_WIDTH - 1{1'b0}}, signed_slt(A_i, B_i)};
+        C = {{DATA_WIDTH - 1{1'b0}}, signed_slt(A, B)};
       end
       ALU_SLTU: begin
-        C_o = {{DATA_WIDTH - 1{1'b0}}, A_i < B_i};
+        C = {{DATA_WIDTH - 1{1'b0}}, A < B};
       end
       ALU_COPY_B: begin
-        C_o = B_i;
+        C = B;
       end
       ALU_ADDW: begin
-        C_o = sext_32(add32);
+        C = sext_32(add32);
       end
       ALU_SUBW: begin
-        C_o = sext_32(add32);
+        C = sext_32(add32);
       end
       ALU_SLLW: begin
-        C_o = sext_32(shift32);  /// TODO: need extra testcase
+        C = sext_32(shift32);  /// TODO: need extra testcase
       end
       ALU_SRLW: begin
-        C_o = sext_32(shift32);
+        C = sext_32(shift32);
       end
       ALU_SRAW: begin
-        C_o = sext_32(shift32);
+        C = sext_32(shift32);
       end
       default: begin
-        C_o = 0;
+        C = 0;
       end
     endcase
   end
 
   always_comb begin
-    case (opcode_i)
+    case (opcode)
       ALU_EQ: begin
-        cmp_o = xor64 == 0;
+        cmp = xor64 == 0;
       end
       ALU_SLT: begin
-        cmp_o = signed_slt(A_i, B_i);
+        cmp = signed_slt(A, B);
       end
       ALU_SLTU: begin
-        cmp_o = A_i < B_i;
+        cmp = A < B;
       end
-      default: cmp_o = 1'b0;
+      default: cmp = 1'b0;
     endcase
   end
 

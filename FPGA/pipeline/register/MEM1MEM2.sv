@@ -3,10 +3,10 @@
 module MEM1MEM2
   import pipeline_pkg::*;
 (
-    input clk_i,
+    input clk,
     input rst,
-    input MEM1MEM2_Pipe_t data_i,
-    output MEM1MEM2_Pipe_t data_o
+    input MEM1MEM2_Pipe_t wdata,
+    output MEM1MEM2_Pipe_t rdata
 );
 
   MEM1MEM2_Pipe_t next_data;
@@ -15,12 +15,12 @@ module MEM1MEM2
     if (rst) begin
       next_data = 0;
     end else begin
-      next_data = data_i;
+      next_data = wdata;
     end
   end
 
-  always_ff @(posedge clk_i) begin
-    data_o <= next_data;
+  always_ff @(posedge clk) begin
+    rdata <= next_data;
   end
 
 endmodule

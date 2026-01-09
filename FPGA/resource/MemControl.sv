@@ -4,17 +4,17 @@ module MemControl
   import utils_pkg::*;
 (
     input logic                  clk,
-    input logic [DATA_WIDTH-1:0] pc_i,
-    input logic [DATA_WIDTH-1:0] addr_i,
-    input logic                  enwr_i,
-    input logic                  En_i,
-    input logic [DATA_WIDTH-1:0] data_i,
-    input logic [           2:0] wid_i,
+    input logic [DATA_WIDTH-1:0] pc,
+    input logic [DATA_WIDTH-1:0] addr,
+    input logic                  enwr,
+    input logic                  En,
+    input logic [DATA_WIDTH-1:0] wdata,
+    input logic [           2:0] wid,
 
-    output logic [DATA_WIDTH-1:0] data_o,
-    output logic [INST_WIDTH-1:0] inst_o,
+    output logic [DATA_WIDTH-1:0] rdata,
+    output logic [INST_WIDTH-1:0] rinst,
     output logic unalign_access,
-    output logic illegal_access_o
+    output logic illegal_access
 
 );
 
@@ -56,38 +56,38 @@ module MemControl
 
   always_comb begin
 
-    dataAddr   = addr_i[IPRAM_SIZE-1:3];  // select DWORD
+    dataAddr   = addr[IPRAM_SIZE-1:3];  // select DWORD
     dataByteEn = 0;
     dataWrite  = 0;
 
-    if (enwr_i == Write) begin
-      case (wid_i)
+    if (enwr == Write) begin
+      case (wid)
         MEM_B: begin
-          dataByteEn = 8'b1 << addr_i[2:0];
-          dataWrite  = {8{data_i[7:0]}};
+          dataByteEn = 8'b1 << addr[2:0];
+          dataWrite  = {8{wdata[7:0]}};
         end
         MEM_H: begin
-          dataByteEn = 8'b11 << addr_i[2:0];
-          dataWrite  = {4{data_i[15:0]}};
+          dataByteEn = 8'b11 << addr[2:0];
+          dataWrite  = {4{wdata[15:0]}};
         end
         MEM_W: begin
-          dataByteEn = 8'h0f << addr_i[2:0];
-          dataWrite  = {2{data_i[31:0]}};
+          dataByteEn = 8'h0f << addr[2:0];
+          dataWrite  = {2{wdata[31:0]}};
         end
         MEM_D: begin
           dataByteEn = 8'hff;
-          dataWrite  = data_i;
+          dataWrite  = wdata;
         end
         MEM_BU: begin  // read-only
-          dataByteEn = 8'b1 << addr_i[2:0];
+          dataByteEn = 8'b1 << addr[2:0];
           dataWrite  = 0;
         end
         MEM_HU: begin  // read-only
-          dataByteEn = 8'b11 << addr_i[2:0];
+          dataByteEn = 8'b11 << addr[2:0];
           dataWrite  = 0;
         end
         MEM_WU: begin  // read-only
-          dataByteEn = 8'h0f << addr_i[2:0];
+          dataByteEn = 8'h0f << addr[2:0];
           dataWrite  = 0;
         end
         default: ;
@@ -100,57 +100,57 @@ module MemControl
     dataWEn = 0;
     dataREn = 0;
 
-    if (enwr_i == Write && En_i) begin
+    if (enwr == Write && En) begin
       dataWEn = 1;
     end
 
-    if (enwr_i == Read && En_i) begin
+    if (enwr == Read && En) begin
       dataREn = 1;
     end
   end
 
   always_comb begin
-    data_o = 0;
+    rdata = 0;
 
-    if (enwr_i == Read && En_i) begin
-      data_o = dataRead;
+    if (enwr == Read && En) begin
+      rdata = dataRead;
     end
 
   end
 
   logic [63:0] intermedia;
   always_comb begin
-    intermedia = (pc_i - 64'h80000000) >> 2;
+    intermedia = (pc - 64'h80000000) >> 2;
     instAddr = intermedia[13:0];
-    illegal_access_o = pc_i[1:0] != 2'b0;
-    inst_o = instRead;  // delayed
+    illegal_access = pc[1:0] != 2'b0;
+    rinst = instRead;  // delayed
   end
 
   /// check Execptions
   always_comb begin
     unalign_access = 1'b0;
 
-    if (enwr_i == Write && En_i) begin
-      case (wid_i)
+    if (enwr == Write && En) begin
+      case (wid)
         MEM_B:   unalign_access = 1'b0;
         MEM_H: begin
-          if (addr_i[0] == 1'b0) unalign_access = 1'b0;
+          if (addr[0] == 1'b0) unalign_access = 1'b0;
           else unalign_access = 1'b1;
         end
         MEM_W: begin
-          if (addr_i[1:0] == 2'b0) unalign_access = 1'b0;
+          if (addr[1:0] == 2'b0) unalign_access = 1'b0;
           else unalign_access = 1'b1;
         end
         MEM_D: begin
-          if (addr_i[2:0] == 3'b0) unalign_access = 1'b0;
+          if (addr[2:0] == 3'b0) unalign_access = 1'b0;
           else unalign_access = 1'b1;
         end
         default: unalign_access = 1'b1;
       endcase
     end
 
-    if (enwr_i == Read && En_i) begin
-      case (wid_i)
+    if (enwr == Read && En) begin
+      case (wid)
         MEM_B:   unalign_access = 1'b0;
         MEM_H:   unalign_access = 1'b0;
         MEM_W:   unalign_access = 1'b0;

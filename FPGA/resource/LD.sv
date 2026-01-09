@@ -3,11 +3,11 @@
 module LD
   import utils_pkg::*;
 (
-    input [DATA_WIDTH-1:0] data_i,
+    input [DATA_WIDTH-1:0] wdata,
     input [2:0] wid_i,
     input [2:0] byteena_i,
 
-    output logic [DATA_WIDTH-1:0] data_o
+    output logic [DATA_WIDTH-1:0] rdata
 );
 
   parameter MEM_B = 3'b000, MEM_H = 3'b001, MEM_W = 3'b010,
@@ -19,17 +19,17 @@ module LD
     logic [5:0] shift_amt;
     shift_amt  = {3'b0, byteena_i[2:0]} << 3;  // byteena_i * 8
 
-    intermedia = data_i >> shift_amt;
+    intermedia = wdata >> shift_amt;
 
     case (wid_i)
-      MEM_B:   data_o = sext_8(intermedia[7:0]);
-      MEM_H:   data_o = sext_16(intermedia[15:0]);
-      MEM_W:   data_o = sext_32(intermedia[31:0]);  // sext.w
-      MEM_D:   data_o = intermedia;
-      MEM_BU:  data_o = zext_8(intermedia[7:0]);
-      MEM_HU:  data_o = zext_16(intermedia[15:0]);
-      MEM_WU:  data_o = zext_32(intermedia[31:0]);
-      default: data_o = 0;
+      MEM_B:   rdata = sext_8(intermedia[7:0]);
+      MEM_H:   rdata = sext_16(intermedia[15:0]);
+      MEM_W:   rdata = sext_32(intermedia[31:0]);  // sext.w
+      MEM_D:   rdata = intermedia;
+      MEM_BU:  rdata = zext_8(intermedia[7:0]);
+      MEM_HU:  rdata = zext_16(intermedia[15:0]);
+      MEM_WU:  rdata = zext_32(intermedia[31:0]);
+      default: rdata = 0;
     endcase
   end
 

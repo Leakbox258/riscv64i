@@ -32,37 +32,35 @@ module riscv64i #(
   wire syst_rst = ~lock | ~rst;
   logic [7:0] exception;
   logic [DATA_WIDTH-1:0] pc, new_pc, commit_pc;
-  logic [INST_WIDTH-1:0] inst;
-
 
   /* verilator public_module */
   PC Pc (
-      .clk_i(clk_pll),
-      .ewrite_i(state == NORMAL),
-      .rst_i(syst_rst),
-      .data_i(new_pc),
-      .pc_o(pc)
+      .clk(clk_pll),
+      .EnWrite(state == NORMAL),
+      .rst(syst_rst),
+      .wdata(new_pc),
+      .rdata(pc)
   );
 
   /* verilator public_module */
   CPU Cpu (
-      .clk_i(clk_pll),
-      .rst_i(syst_rst),
-      .pc_i (pc),
+      .clk(clk_pll),
+      .rst(syst_rst),
+      .pc (pc),
 
-      .new_pc_o(new_pc),
-      .commit_pc_o(commit_pc),
-      .exceptions_o(exception)
-      //   .inst_o(inst)
+      .new_pc(new_pc),
+      .commit_pc(commit_pc),
+      .exceptions(exception)
   );
 
   wire [7:0] segs[7:0];
   Display display (
-      .clk_i(clk_pll),
-      .rst_i(syst_rst),
-      .display_i(commit_pc[INST_WIDTH-1:0]),
+      .clk(clk_pll),
+      .rst(syst_rst),
+      .display(commit_pc[INST_WIDTH-1:0]),
       .segs_reg(segs)
   );
+
 
   assign seg0 = segs[0][6:0];
   assign seg1 = segs[1][6:0];

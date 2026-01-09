@@ -113,10 +113,11 @@ vrun: $(VBIN) testcase
 	@clear
 	@$(VBIN)
 
-CP_DIR ?= ~/workspace/riscv64i/rtl
+CP_DIR ?= ~/workspace/riscv64i/
 
 cp: sv2v
-	$(foreach v, $(shell find $(abspath $(BUILD_DIR)/verilog) -name "*.sv.v"), $(shell cp $(v) $(CP_DIR)/.))
+	$(foreach v, $(shell find $(abspath $(BUILD_DIR)/verilog) -name "*.sv.v"), $(shell cp $(v) $(CP_DIR)/rtl/.))
+	$(shell cp ./script/app.mif $(CP_DIR)/ram_init/.)
 
 clean:
 	rm -rf $(BUILD_DIR)
